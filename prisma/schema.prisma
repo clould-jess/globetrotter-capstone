@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String           @id @default(cuid())
+  email        String           @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  itineraries  Itinerary[]      @relation("OwnedItineraries")
+  shares       ItineraryShare[]
+  sessions     Session[]
+  auditLogs    AuditLog[]
+}
+
+// Custom session table. We store a HASH of the session token, never the raw
+// token. The raw token only ever lives in the HttpOnly cookie on the client.
+// This mirrors how password-reset tokens should be handled: a DB leak alone
+// does not let an attacker impersonate a live session.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Itinerary {
+  id          String           @id @default(cuid())
+  title       String
+  destination String
+  startDate   DateTime
+  endDate     DateTime
+  notes       String?
+  ownerId     String
+  owner       User             @relation("OwnedItineraries", fields: [ownerId], references: [id])
+  shares      ItineraryShare[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([ownerId])
+}
+
+// The intra-application trust boundary: who besides the owner can touch
+// this itinerary, and with what permission level.
+model ItineraryShare {
+  id          String     @id @default(cuid())
+  itineraryId String
+  itinerary   Itinerary  @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission  String     @default("VIEW")
+  createdAt   DateTime   @default(now())
+
+  @@unique([itineraryId, userId])
+  @@index([userId])
+}
+
+// Accountability trail for sensitive actions (share, revoke, delete).
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorId      String
+  actor        User     @relation(fields: [actorId], references: [id])
+  action       String
+  resourceType String
+  resourceId   String
+  metadata     String?
+  createdAt    DateTime @default(now())
+
+  @@index([actorId])
+  @@index([resourceType, resourceId])
+}
+
+model Destination {
+  id          String   @id @default(cuid())
+  name        String
+  country     String
+  description String?
+  // SQLite does not support scalar lists. For local testing, tags are stored
+  // as a comma-separated lowercase string and shaped back to string[] in API
+  // responses. Phase 3/Postgres can restore a native String[] if desired.
+  tags        String
+
+  @@index([name])
+}
