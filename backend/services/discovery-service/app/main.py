@@ -130,7 +130,7 @@ def initialise_database() -> None:
             """
             INSERT INTO destinations
               (slug, name, region_fr, region_en, summary_fr, summary_en, categories, image_url, published)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s::text[], %s, %s)
             ON CONFLICT (slug) DO NOTHING
             """,
             SEED_DESTINATIONS,
@@ -139,7 +139,10 @@ def initialise_database() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    initialise_database()
+    try:
+        initialise_database()
+    except Exception as exc:
+        print(f"[discovery-service] Warning during database init: {exc}")
     yield
 
 
@@ -272,4 +275,3 @@ def publish_destination(slug: str, role: AdminRole, database: Database):
     if not destination:
         raise HTTPException(status_code=404, detail="Destination not found")
     return destination
-
