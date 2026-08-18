@@ -15,6 +15,9 @@ RUN npm ci
 # Copy application source code
 COPY . .
 
+# Ensure shell scripts have execute permissions
+RUN chmod +x scripts/*.sh
+
 # Build application
 RUN npm run build
 
