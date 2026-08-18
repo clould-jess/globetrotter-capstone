@@ -1,10 +1,24 @@
 name: cameroon-project
 
 services:
+  web:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      API_GATEWAY_URL: http://gateway:8080
+    depends_on:
+      gateway:
+        condition: service_healthy
+    restart: unless-stopped
+
   gateway:
     image: nginx:1.27-alpine
     ports:
-      - "8080:8080"
+      - "8085:8080"
     volumes:
       - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -14,6 +28,11 @@ services:
         condition: service_healthy
       discovery-service:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
 
   user-service:
@@ -21,7 +40,7 @@ services:
     ports:
       - "8001:8000"
     environment:
-      DATABASE_URL: postgresql://cameroon_user:${USER_DB_PASSWORD:-cameroon_user_dev}@user-db:5432/cameroon_users
+      DATABASE_URL: postgresql://cameroon_user:${USER_DB_PASSWORD:-cameroon_user_prod}@user-db:5432/cameroon_users
     depends_on:
       user-db:
         condition: service_healthy
@@ -37,8 +56,8 @@ services:
     ports:
       - "8002:8000"
     environment:
-      DATABASE_URL: postgresql://cameroon_itinerary:${ITINERARY_DB_PASSWORD:-cameroon_itinerary_dev}@itinerary-db:5432/cameroon_itineraries
-      RABBITMQ_URL: amqp://${RABBITMQ_USER:-cameroon}:${RABBITMQ_PASSWORD:-cameroon_events_dev}@rabbitmq:5672/
+      DATABASE_URL: postgresql://cameroon_itinerary:${ITINERARY_DB_PASSWORD:-cameroon_itinerary_prod}@itinerary-db:5432/cameroon_itineraries
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-cameroon}:${RABBITMQ_PASSWORD:-cameroon_events_prod}@rabbitmq:5672/
     depends_on:
       itinerary-db:
         condition: service_healthy
@@ -56,7 +75,7 @@ services:
     ports:
       - "8003:8000"
     environment:
-      DATABASE_URL: postgresql://cameroon_discovery:${DISCOVERY_DB_PASSWORD:-cameroon_discovery_dev}@discovery-db:5432/cameroon_discovery
+      DATABASE_URL: postgresql://cameroon_discovery:${DISCOVERY_DB_PASSWORD:-cameroon_discovery_prod}@discovery-db:5432/cameroon_discovery
     depends_on:
       discovery-db:
         condition: service_healthy
@@ -72,7 +91,7 @@ services:
     environment:
       POSTGRES_DB: cameroon_users
       POSTGRES_USER: cameroon_user
-      POSTGRES_PASSWORD: ${USER_DB_PASSWORD:-cameroon_user_dev}
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD:-cameroon_user_prod}
     volumes:
       - user-data:/var/lib/postgresql/data
     healthcheck:
@@ -80,13 +99,14 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
 
   itinerary-db:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: cameroon_itineraries
       POSTGRES_USER: cameroon_itinerary
-      POSTGRES_PASSWORD: ${ITINERARY_DB_PASSWORD:-cameroon_itinerary_dev}
+      POSTGRES_PASSWORD: ${ITINERARY_DB_PASSWORD:-cameroon_itinerary_prod}
     volumes:
       - itinerary-data:/var/lib/postgresql/data
     healthcheck:
@@ -94,13 +114,14 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
 
   discovery-db:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: cameroon_discovery
       POSTGRES_USER: cameroon_discovery
-      POSTGRES_PASSWORD: ${DISCOVERY_DB_PASSWORD:-cameroon_discovery_dev}
+      POSTGRES_PASSWORD: ${DISCOVERY_DB_PASSWORD:-cameroon_discovery_prod}
     volumes:
       - discovery-data:/var/lib/postgresql/data
     healthcheck:
@@ -108,14 +129,15 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    restart: unless-stopped
 
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-cameroon}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-cameroon_events_dev}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-cameroon_events_prod}
     ports:
-      - "15672:15672"
+      - "15673:15672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
@@ -123,6 +145,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
 
 volumes:
   user-data:
