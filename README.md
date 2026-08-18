@@ -1,76 +1,78 @@
-# GlobeTrotter Travel Assistant - Phase 1
+# Cameroon Project
 
-Next.js 14 + Prisma 5 + SQLite for local testing. No deployment yet; this runs entirely on your machine.
+Plateforme bilingue de découverte du Cameroun, conçue comme un projet scolaire complet : expérience éditoriale, recherche de destinations, recommandations, carnet de voyage et architecture évolutive.
 
-See `docs/globetrotter-phase1-threat-model.md` for the security rationale behind the design decisions in this codebase.
+## Ce qui est inclus
 
-## Setup
+- Interface responsive en français et en anglais.
+- Six destinations réelles avec photographies créditées.
+- Recherche et filtres par intérêt.
+- Questionnaire de recommandations.
+- Itinéraire local : ajout, ordre, suppression et lien de partage.
+- Guide touristique avec hôtels, restaurants, sorties, filtres et carte OpenStreetMap interactive.
+- Sélections pratiques intégrées aux fiches de destination.
+- Routes JSON légères pour le prototype (`/api/health`, `/api/destinations`, `/api/recommendations`).
+- Socle phase 2 dans `backend/` : passerelle Nginx, trois services FastAPI, trois bases PostgreSQL et RabbitMQ.
+- Documentation d’architecture, sécurité et contrats API.
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+## Démarrer le site
 
-2. Configure environment:
-   ```bash
-   copy .env.example .env
-   copy .env.example .env.local
-   ```
-   Prisma CLI reads `.env`; Next.js reads `.env.local`.
+Prérequis : Node.js 22.13 ou plus récent.
 
-3. Create the local SQLite database and generate Prisma Client:
-   ```bash
-   npm run db:sqlite
-   npm run db:generate
-   ```
-
-4. Seed sample destinations:
-   ```bash
-   npm run db:seed
-   ```
-
-5. Run the app:
-   ```bash
-   npm run dev
-   ```
-   Visit `http://localhost:3000`.
-
-## Project Layout
-
-```text
-app/                    web UI pages
-app/api/auth/           signup, login, logout, me
-app/api/itineraries/    CRUD + sharing
-app/api/destinations/   search
-app/api/health/         database-backed health check
-lib/db.ts               Prisma client singleton
-lib/session.ts          hashed-token session auth with HttpOnly cookie
-lib/authz.ts            canAccessItinerary(), the authorization chokepoint
-lib/audit.ts            audit log writer
-lib/logger.ts           pino logger with sensitive-field redaction
-lib/rateLimit.ts        in-memory rate limiter for Phase 1
-lib/validations/        Zod schemas per resource
-middleware.ts           security headers on every response
-prisma/schema.prisma    User, Session, Itinerary, ItineraryShare, AuditLog, Destination
-prisma/dev.db           local SQLite database, ignored by git
+```bash
+npm ci
+npm run dev
 ```
 
-## Manual Security Checklist
+Commandes de qualité :
 
-Run these against your own local instance before moving to Phase 2:
+```bash
+npm run lint
+npm test
+```
 
-- [ ] Create two users, A and B. Confirm B cannot `GET /api/itineraries/{A's id}` without a share grant. Expect 404, not the data.
-- [ ] Share an itinerary from A to B with `VIEW` only. Confirm B's `PATCH` on it is rejected and B's `DELETE` is rejected.
-- [ ] Confirm B cannot call `POST /api/itineraries/{id}/share` on A's itinerary, even with `EDIT` permission.
-- [ ] Try sending `{"ownerId": "someone-else"}` in an itinerary create/update body. Confirm it is rejected or ignored, never respected.
-- [ ] Try 15+ rapid login attempts with a wrong password. Confirm you get rate-limited with 429.
-- [ ] Inspect login/signup responses and server logs. Confirm `passwordHash` never appears in a client response or log line.
-- [ ] Check the session cookie in browser devtools. Confirm `HttpOnly` is set and the raw value does not directly match the `Session.tokenHash` value.
-- [ ] Query the `AuditLog` table after a share/delete action. Confirm an entry was written.
+## Démarrer la phase 2
 
-## Notes
+Prérequis : Docker avec Docker Compose.
 
-- SQLite is enabled now so the app can be tested without Docker/Postgres.
-- PostgreSQL remains the target database for the original Phase 1 architecture and later cloud phases.
-- Rate limiting is in-memory for Phase 1 and should move to Redis in Phase 3/4.
-- Secrets are local `.env` files for now; Phase 3 should move secrets into the deployment platform's secrets manager.
+```bash
+cd backend
+cp .env.example .env
+docker compose up --build
+```
+
+Services locaux :
+
+| Surface | Adresse locale |
+| --- | --- |
+| API Gateway | `http://localhost:8080` |
+| User Service / OpenAPI | `http://localhost:8001/docs` |
+| Itinerary Service / OpenAPI | `http://localhost:8002/docs` |
+| Discovery Service / OpenAPI | `http://localhost:8003/docs` |
+| RabbitMQ Management | `http://localhost:15672` |
+
+Les mots de passe fournis sont réservés au développement local. Ils doivent être remplacés par des secrets gérés dans tout environnement partagé.
+
+## Organisation
+
+```text
+app/                 Pages et routes du prototype web
+components/          Composants React réutilisables
+lib/                 Catalogues éditoriaux et touristiques typés
+backend/
+  gateway/            Passerelle et limites de trafic
+  services/           User, Itinerary et Discovery services
+  docker-compose.yml  Environnement distribué local
+docs/                 Architecture, sécurité et contrats
+tests/                Vérifications automatisées
+```
+
+## Phases du projet
+
+La phase 1 valide l’expérience avec un catalogue embarqué et un itinéraire conservé dans le navigateur. La phase 2 fournit le découpage cible : chaque domaine possède son service et sa base, la passerelle centralise l’entrée et RabbitMQ transporte les événements d’itinéraire. Le frontend hébergé reste utilisable seul ; le dossier `backend/` sert de socle exécutable pour la connexion serveur suivante.
+
+Consulter [l’architecture](docs/ARCHITECTURE.md), [les contrats API](docs/API_CONTRACTS.md) et [le dossier sécurité](docs/SECURITY.md).
+
+## Crédits
+
+Les images proviennent de Wikimedia Commons et leurs auteurs/licences sont détaillés dans la page `/credits`. Les textes éditoriaux du projet sont originaux.

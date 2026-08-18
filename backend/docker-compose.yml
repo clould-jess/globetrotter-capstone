@@ -1,0 +1,131 @@
+name: cameroon-project
+
+services:
+  gateway:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      user-service:
+        condition: service_healthy
+      itinerary-service:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+    restart: unless-stopped
+
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://cameroon_user:${USER_DB_PASSWORD:-cameroon_user_dev}@user-db:5432/cameroon_users
+    depends_on:
+      user-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  itinerary-service:
+    build: ./services/itinerary-service
+    ports:
+      - "8002:8000"
+    environment:
+      DATABASE_URL: postgresql://cameroon_itinerary:${ITINERARY_DB_PASSWORD:-cameroon_itinerary_dev}@itinerary-db:5432/cameroon_itineraries
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-cameroon}:${RABBITMQ_PASSWORD:-cameroon_events_dev}@rabbitmq:5672/
+    depends_on:
+      itinerary-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  discovery-service:
+    build: ./services/discovery-service
+    ports:
+      - "8003:8000"
+    environment:
+      DATABASE_URL: postgresql://cameroon_discovery:${DISCOVERY_DB_PASSWORD:-cameroon_discovery_dev}@discovery-db:5432/cameroon_discovery
+    depends_on:
+      discovery-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  user-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cameroon_users
+      POSTGRES_USER: cameroon_user
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD:-cameroon_user_dev}
+    volumes:
+      - user-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cameroon_user -d cameroon_users"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  itinerary-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cameroon_itineraries
+      POSTGRES_USER: cameroon_itinerary
+      POSTGRES_PASSWORD: ${ITINERARY_DB_PASSWORD:-cameroon_itinerary_dev}
+    volumes:
+      - itinerary-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cameroon_itinerary -d cameroon_itineraries"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  discovery-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cameroon_discovery
+      POSTGRES_USER: cameroon_discovery
+      POSTGRES_PASSWORD: ${DISCOVERY_DB_PASSWORD:-cameroon_discovery_dev}
+    volumes:
+      - discovery-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cameroon_discovery -d cameroon_discovery"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-cameroon}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-cameroon_events_dev}
+    ports:
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  user-data:
+  itinerary-data:
+  discovery-data:
+  rabbitmq-data:
