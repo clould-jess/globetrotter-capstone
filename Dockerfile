@@ -2,6 +2,9 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Install bash and coreutils (timeout) required by scripts/build-verified.sh
+RUN apk add --no-cache bash coreutils
+
 # Copy dependency manifests
 COPY package.json package-lock.json ./
 COPY .npmrc ./
