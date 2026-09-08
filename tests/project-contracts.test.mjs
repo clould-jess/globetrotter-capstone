@@ -5,6 +5,24 @@ import test from "node:test";
 const readProjectFile = (path) =>
   readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
+test("production auth redirects and non-root service files remain safe", async () => {
+  const [gateway, login, auth, discovery] = await Promise.all([
+    readProjectFile("backend/gateway/nginx.conf"),
+    readProjectFile("app/account/page.tsx"),
+    readProjectFile("components/auth-provider.tsx"),
+    readProjectFile("backend/services/discovery-service/app/main.py"),
+  ]);
+  assert.match(gateway, /absolute_redirect off;/);
+  assert.match(login, /window\.location\.replace/);
+  assert.match(login, /prefetch=\{false\}/);
+  assert.match(auth, /window\.location\.replace\("\/account"\)/);
+  assert.doesNotMatch(discovery, /database\.executemany/);
+  assert.match(discovery, /cursor\.executemany/);
+  for (const service of ["user-service", "discovery-service", "itinerary-service", "community-service"]) {
+    assert.match(await readProjectFile(`backend/services/${service}/Dockerfile`), /COPY --chown=app:app app \.\/app/);
+  }
+});
+
 test("ships a credited destination collection covering Cameroon", async () => {
   const source = await readProjectFile("lib/destinations.ts");
   const slugs = [

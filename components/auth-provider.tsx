@@ -68,8 +68,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (!response.ok) throw new Error("Logout failed");
     setUser(null);
-    router.replace("/account");
-  }, [router]);
+    // Clear the in-memory navigation cache when switching authenticated identities.
+    window.location.replace("/account");
+  }, []);
 
   const value = useMemo(
     () => ({ user, setUser, refreshUser, logout }),

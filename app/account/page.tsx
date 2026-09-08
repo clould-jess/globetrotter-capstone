@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth, type SessionUser } from "@/components/auth-provider";
 import { API_BASE, responseMessage } from "@/lib/api";
@@ -13,7 +12,6 @@ export default function AccountPage() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const { user, setUser } = useAuth();
-  const router = useRouter();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,7 +40,8 @@ export default function AccountPage() {
       setUser(await response.json() as SessionUser);
       const requested = new URLSearchParams(window.location.search).get("next");
       const destination = new URL(requested || "/", window.location.origin);
-      router.replace(destination.origin === window.location.origin ? destination.pathname + destination.search : "/");
+      // A fresh document prevents unauthenticated prefetched redirects surviving login.
+      window.location.replace(destination.origin === window.location.origin ? destination.pathname + destination.search : "/");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "La connexion a échoué.");
     } finally {
@@ -53,7 +52,7 @@ export default function AccountPage() {
   return (
     <main className="account-page">
       <section className="account-story">
-        <Link className="brand account-brand" href="/" aria-label="Cameroon Project">
+        <Link className="brand account-brand" href="/" prefetch={false} aria-label="Cameroon Project">
           <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
           <span><b>CAMEROON</b><small>PROJECT</small></span>
         </Link>
@@ -76,7 +75,7 @@ export default function AccountPage() {
               <p className="eyebrow">Compte actif</p>
               <h2>Bienvenue, {user.display_name}</h2>
               <p>Votre session est déjà ouverte.</p>
-              <button type="button" className="button button-forest" onClick={() => router.replace("/")}>Entrer sur le site →</button>
+              <button type="button" className="button button-forest" onClick={() => window.location.replace("/")}>Entrer sur le site →</button>
             </div>
           ) : (
             <>
@@ -97,7 +96,7 @@ export default function AccountPage() {
                 {error && <p className="form-error" role="alert">{error}</p>}
                 <button type="submit" className="button button-sun" disabled={pending}>{pending ? "Un instant…" : mode === "login" ? "Se connecter →" : "Créer mon compte →"}</button>
               </form>
-              <p className="account-privacy">Votre mot de passe est chiffré côté serveur et votre session reste dans un cookie inaccessible à JavaScript.</p>
+              <p className="account-privacy">Votre mot de passe est protégé par un hachage sécurisé et votre session reste dans un cookie inaccessible à JavaScript.</p>
             </>
           )}
         </div>
