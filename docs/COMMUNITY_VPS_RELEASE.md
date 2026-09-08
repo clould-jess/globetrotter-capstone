@@ -52,6 +52,7 @@ Then, in the confirmed repository directory, check `git status --short`, `git re
 docker compose config --quiet
 docker compose build
 docker compose up -d
+docker compose up -d --no-deps --force-recreate gateway
 docker compose ps
 docker compose exec gateway nginx -t
 ```
@@ -60,6 +61,8 @@ docker compose exec gateway nginx -t
 8. For rollback, restore the previous approved source/image versions and the original Compose port mapping; preserve volumes. The community schema changes are additive. Restore a database backup only if necessary and after considering data created after the backup.
 
 ## Optional HTTPS without a personal domain
+
+Recreating only the gateway refreshes its mounted configuration after Git replaces the file and re-resolves service container addresses. A plain Nginx reload can retain the old bind-mounted file.
 
 The `https` Compose profile adds Caddy for `cameroon-169-58-83-56.sslip.io` (override `SITE_HOST` in `.env`). This DNS service is third-party infrastructure, not a personally owned domain, and its availability/certificate rate limits are outside the project’s control. Caddy stores and renews the public certificate in persistent volumes. See https://nip.io/ and https://caddyserver.com/docs/automatic-https.
 

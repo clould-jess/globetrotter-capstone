@@ -11,11 +11,18 @@ git rev-parse HEAD > "$backup_dir/revision.txt"
 cp backend/docker-compose.yml "$backup_dir/docker-compose.yml"
 install -m 600 backend/.env "$backup_dir/backend.env"
 cp /etc/nginx/sites-enabled/cameroon.conf "$backup_dir/cameroon.conf"
+if [ -f /etc/nginx/sites-available/cameroon-community-https.conf ]; then
+  cp /etc/nginx/sites-available/cameroon-community-https.conf "$backup_dir/cameroon-community-https.conf"
+fi
 cd backend
 docker compose exec -T user-db pg_dump -U cameroon_user cameroon_users </dev/null | gzip > "$backup_dir/users.sql.gz"
 docker compose exec -T itinerary-db pg_dump -U cameroon_itinerary cameroon_itineraries </dev/null | gzip > "$backup_dir/itineraries.sql.gz"
 docker compose exec -T discovery-db pg_dump -U cameroon_discovery cameroon_discovery </dev/null | gzip > "$backup_dir/discovery.sql.gz"
 gzip -t "$backup_dir/users.sql.gz" "$backup_dir/itineraries.sql.gz" "$backup_dir/discovery.sql.gz"
+if docker compose config --services | grep -qx community-db; then
+  docker compose exec -T community-db pg_dump -U cameroon_community cameroon_community </dev/null | gzip > "$backup_dir/community.sql.gz"
+  gzip -t "$backup_dir/community.sql.gz"
+fi
 for container in $(docker ps -q --filter label=com.docker.compose.project=cameroon-project); do
   service=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' "$container")
   image=$(docker inspect -f '{{.Image}}' "$container")

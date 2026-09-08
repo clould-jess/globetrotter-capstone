@@ -7,7 +7,7 @@ Plateforme bilingue de découverte du Cameroun, conçue comme un projet scolaire
 ## Ce qui est inclus
 
 - Interface responsive en français et en anglais.
-- Six destinations réelles avec photographies créditées.
+- Treize destinations éditoriales avec photographies créditées.
 - Recherche et filtres par intérêt.
 - Questionnaire de recommandations.
 - Itinéraire local : ajout, ordre, suppression et lien de partage.
@@ -17,7 +17,7 @@ Plateforme bilingue de découverte du Cameroun, conçue comme un projet scolaire
 - Tableau de bord administrateur : audience, activité des salons et édition du catalogue publié.
 - Sélections pratiques intégrées aux fiches de destination.
 - Routes JSON légères pour le prototype (`/api/health`, `/api/destinations`, `/api/recommendations`).
-- Socle phase 2 dans `backend/` : passerelle Nginx, trois services FastAPI, trois bases PostgreSQL et RabbitMQ.
+- Services dans `backend/` : passerelle Nginx, quatre services FastAPI, quatre bases PostgreSQL et RabbitMQ.
 - Documentation d’architecture, sécurité et contrats API.
 
 ## Démarrer le site
@@ -42,7 +42,7 @@ Prérequis : Docker avec Docker Compose.
 
 ```bash
 cd backend
-cp .env.example .env
+test -e .env || cp .env.example .env
 docker compose up --build
 ```
 
@@ -50,12 +50,12 @@ Services locaux :
 
 | Surface | Adresse locale |
 | --- | --- |
-| API Gateway | `http://localhost:8080` |
-| User Service / OpenAPI | `http://localhost:8001/docs` |
-| Itinerary Service / OpenAPI | `http://localhost:8002/docs` |
-| Discovery Service / OpenAPI | `http://localhost:8003/docs` |
+| Site et API Gateway | `http://localhost:3001` |
+| User Service / OpenAPI (réseau Docker uniquement) | `user-service:8000/docs` |
+| Itinerary Service / OpenAPI (réseau Docker uniquement) | `itinerary-service:8000/docs` |
+| Discovery Service / OpenAPI (réseau Docker uniquement) | `discovery-service:8000/docs` |
 | Community Service (réseau Docker uniquement) | `community-service:8000/docs` |
-| RabbitMQ Management | `http://localhost:15672` |
+| RabbitMQ Management (boucle locale uniquement) | `http://localhost:15673` |
 
 Les mots de passe fournis sont réservés au développement local. Ils doivent être remplacés par des secrets gérés dans tout environnement partagé.
 
@@ -75,10 +75,10 @@ tests/                Vérifications automatisées
 
 ## Phases du projet
 
-La phase 1 valide l’expérience avec un catalogue embarqué et un itinéraire conservé dans le navigateur. La phase 2 fournit le découpage cible : chaque domaine possède son service et sa base, la passerelle centralise l’entrée et RabbitMQ transporte les événements d’itinéraire. Le frontend hébergé reste utilisable seul ; le dossier `backend/` sert de socle exécutable pour la connexion serveur suivante.
+La phase 1 a validé l’expérience avec un catalogue embarqué et un carnet local. La version communautaire utilise maintenant les services Docker pour les comptes, les messages, les médias et les parcours enregistrés. Le frontend seul ne suffit donc plus pour les fonctionnalités authentifiées. La passerelle centralise l’entrée et RabbitMQ transporte les événements d’itinéraire.
 
 Consulter [l’architecture](docs/ARCHITECTURE.md), [les contrats API](docs/API_CONTRACTS.md) et [le dossier sécurité](docs/SECURITY.md).
-Pour la mise en production, suivre [le guide VPS](docs/VPS_DEPLOYMENT.md).
+Pour ce serveur existant, suivre [le guide Contabo et le bilan de vérification](docs/CONTABO_RELEASE.md), puis [les précautions de mise à jour](docs/COMMUNITY_VPS_RELEASE.md).
 
 ## Crédits
 
