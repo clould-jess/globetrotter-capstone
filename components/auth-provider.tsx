@@ -51,6 +51,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const invitation = new URLSearchParams(window.location.hash.slice(1)).get("invite");
+    if (invitation && /^[A-Za-z0-9_-]{40,100}$/.test(invitation)) {
+      try { sessionStorage.setItem("cameroon-pending-invite", invitation); } catch { /* Optional storage. */ }
+    }
     const timer = window.setTimeout(() => void refreshUser(), 0);
     return () => window.clearTimeout(timer);
   }, [refreshUser]);
@@ -68,6 +72,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (!response.ok) throw new Error("Logout failed");
     setUser(null);
+    try {
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith("cameroon-chat-draft:")) sessionStorage.removeItem(key);
+      }
+    } catch { /* Browser storage may be disabled. */ }
     // Clear the in-memory navigation cache when switching authenticated identities.
     window.location.replace("/account");
   }, []);

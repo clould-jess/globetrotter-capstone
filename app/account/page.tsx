@@ -1,13 +1,24 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useAuth, type SessionUser } from "@/components/auth-provider";
 import { API_BASE, responseMessage } from "@/lib/api";
 
 type Mode = "login" | "register";
+const hydrationSubscribe = () => () => {};
+
+function accountDestination() {
+  let invitation = new URLSearchParams(window.location.hash.slice(1)).get("invite");
+  try { invitation ||= sessionStorage.getItem("cameroon-pending-invite"); } catch { /* Optional storage. */ }
+  if (invitation && /^[A-Za-z0-9_-]{40,100}$/.test(invitation)) return "/community#invite=" + invitation;
+  const requested = new URLSearchParams(window.location.search).get("next");
+  const destination = new URL(requested || "/", window.location.origin);
+  return destination.origin === window.location.origin ? destination.pathname + destination.search : "/";
+}
 
 export default function AccountPage() {
+  const hydrated = useSyncExternalStore(hydrationSubscribe, () => true, () => false);
   const [mode, setMode] = useState<Mode>("login");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -38,10 +49,8 @@ export default function AccountPage() {
       });
       if (!response.ok) throw new Error(await responseMessage(response));
       setUser(await response.json() as SessionUser);
-      const requested = new URLSearchParams(window.location.search).get("next");
-      const destination = new URL(requested || "/", window.location.origin);
       // A fresh document prevents unauthenticated prefetched redirects surviving login.
-      window.location.replace(destination.origin === window.location.origin ? destination.pathname + destination.search : "/");
+      window.location.replace(accountDestination());
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "La connexion a échoué.");
     } finally {
@@ -75,7 +84,7 @@ export default function AccountPage() {
               <p className="eyebrow">Compte actif</p>
               <h2>Bienvenue, {user.display_name}</h2>
               <p>Votre session est déjà ouverte.</p>
-              <button type="button" className="button button-forest" onClick={() => window.location.replace("/")}>Entrer sur le site →</button>
+              <button type="button" className="button button-forest" onClick={() => window.location.replace(accountDestination())}>Entrer sur le site →</button>
             </div>
           ) : (
             <>
@@ -87,14 +96,14 @@ export default function AccountPage() {
                 <p className="eyebrow">{mode === "login" ? "Bon retour" : "Rejoindre la communauté"}</p>
                 <h2>{mode === "login" ? "Continuez votre voyage." : "Créez votre espace voyageur."}</h2>
               </div>
-              <form className="account-form" onSubmit={submit}>
+              <form className="account-form" method="post" onSubmit={submit}>
                 {mode === "register" && (
                   <label>Nom affiché<input name="display_name" minLength={2} maxLength={80} autoComplete="name" required placeholder="Ex. Amina" /></label>
                 )}
                 <label>Adresse e-mail<input name="email" type="email" autoComplete="email" required placeholder="vous@exemple.com" /></label>
                 <label>Mot de passe<input name="password" type="password" minLength={mode === "register" ? 10 : 1} maxLength={128} autoComplete={mode === "register" ? "new-password" : "current-password"} required placeholder={mode === "register" ? "10 caractères minimum" : "Votre mot de passe"} /></label>
                 {error && <p className="form-error" role="alert">{error}</p>}
-                <button type="submit" className="button button-sun" disabled={pending}>{pending ? "Un instant…" : mode === "login" ? "Se connecter →" : "Créer mon compte →"}</button>
+                <button type="submit" className="button button-sun" disabled={pending || !hydrated}>{pending || !hydrated ? "Un instant…" : mode === "login" ? "Se connecter →" : "Créer mon compte →"}</button>
               </form>
               <p className="account-privacy">Votre mot de passe est protégé par un hachage sécurisé et votre session reste dans un cookie inaccessible à JavaScript.</p>
             </>

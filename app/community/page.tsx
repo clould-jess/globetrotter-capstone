@@ -12,15 +12,9 @@ export default function CommunityPage() {
 
   return (
     <PageShell>
-      <section className="page-hero community-hero">
-        <div className="container page-hero-inner">
-          <p className="eyebrow light"><T fr="Carnets partagés" en="Shared travel notes" /></p>
-          <h1><T fr="La communauté des voyageurs" en="The traveller community" /></h1>
-          <p><T fr="Choisissez une destination et échangez conseils, souvenirs et bonnes adresses avec les autres membres." en="Choose a destination and share tips, memories and favourite places with other members." /></p>
-        </div>
-      </section>
-      <section className="container section-small">
+      <section className="container messaging-page">
         <CommunityGroups />
+        <h2 className="destination-discussions-title"><T fr="Discuter d’une destination" en="Discuss a destination" /></h2>
         <div className="community-room-grid">
           {destinations.map((destination) => (
             <Link className="community-room-card" href={`/community/${destination.slug}`} key={destination.slug}>

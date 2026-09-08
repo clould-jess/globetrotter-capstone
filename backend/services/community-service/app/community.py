@@ -30,11 +30,13 @@ class TextModel(BaseModel):
 
 class MessageCreate(TextModel):
     body: str = Field(min_length=1, max_length=1000)
+    reply_to: UUID | None = None
 
 
 class GroupCreate(TextModel):
     name: str = Field(min_length=2, max_length=80)
     description: str = Field(default="", max_length=400)
+    is_private: bool = False
 
 
 class ReviewCreate(TextModel):
@@ -61,10 +63,12 @@ def slug_valid(slug: str):
 def room_access(database, slug, user):
     slug_valid(slug)
     if slug.startswith("group-"):
-        group = database.execute("SELECT id FROM chat_groups WHERE id = %s", (slug,)).fetchone()
+        group = database.execute("SELECT id, is_private FROM chat_groups WHERE id = %s FOR SHARE", (slug,)).fetchone()
         if not group:
             raise HTTPException(404, "Group not found")
-        member = database.execute("SELECT 1 FROM group_members WHERE group_id = %s AND user_id = %s", (slug, user.id)).fetchone()
+        member = database.execute("SELECT 1 FROM group_members WHERE group_id = %s AND user_id = %s AND NOT blocked", (slug, user.id)).fetchone()
+        if not member and group.get("is_private", False):
+            raise HTTPException(404, "Group not found or invitation required")
         if not member and user.role != "admin":
             raise HTTPException(403, "Join this group to read and send messages")
 
@@ -76,6 +80,8 @@ def initialise_database():
             user_id UUID NOT NULL, display_name VARCHAR(80) NOT NULL,
             body VARCHAR(1000) NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
         database.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_kind VARCHAR(10)")
+        database.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to UUID REFERENCES messages(id) ON DELETE SET NULL")
+        database.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_reply BOOLEAN NOT NULL DEFAULT FALSE")
         database.execute("CREATE INDEX IF NOT EXISTS messages_room_created_idx ON messages(destination_slug, created_at DESC)")
         database.execute("CREATE INDEX IF NOT EXISTS messages_user_idx ON messages(user_id)")
         database.execute("""CREATE TABLE IF NOT EXISTS message_media (
@@ -87,6 +93,21 @@ def initialise_database():
         database.execute("""CREATE TABLE IF NOT EXISTS group_members (
             group_id VARCHAR(80) REFERENCES chat_groups(id) ON DELETE CASCADE,
             user_id UUID NOT NULL, PRIMARY KEY (group_id, user_id))""")
+        database.execute("ALTER TABLE chat_groups ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT FALSE")
+        database.execute("ALTER TABLE group_members ADD COLUMN IF NOT EXISTS display_name VARCHAR(80) NOT NULL DEFAULT 'Membre'")
+        database.execute("ALTER TABLE group_members ADD COLUMN IF NOT EXISTS blocked BOOLEAN NOT NULL DEFAULT FALSE")
+        database.execute("""CREATE TABLE IF NOT EXISTS group_invites (
+            token_hash CHAR(64) PRIMARY KEY, group_id VARCHAR(80) REFERENCES chat_groups(id) ON DELETE CASCADE,
+            expires_at TIMESTAMPTZ NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW())""")
+        database.execute("CREATE INDEX IF NOT EXISTS group_invites_group_idx ON group_invites(group_id)")
+        database.execute("""CREATE TABLE IF NOT EXISTS user_blocks (
+            user_id UUID NOT NULL, blocked_id UUID NOT NULL, display_name VARCHAR(80) NOT NULL,
+            PRIMARY KEY(user_id, blocked_id))""")
+        database.execute("""CREATE TABLE IF NOT EXISTS message_reports (
+            id UUID PRIMARY KEY, message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
+            reporter_id UUID NOT NULL, reason VARCHAR(500) NOT NULL,
+            resolved BOOLEAN NOT NULL DEFAULT FALSE, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            UNIQUE(message_id, reporter_id))""")
         database.execute("""CREATE TABLE IF NOT EXISTS reviews (
             id UUID PRIMARY KEY, place_slug VARCHAR(80) NOT NULL, user_id UUID NOT NULL,
             display_name VARCHAR(80) NOT NULL, rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
@@ -104,7 +125,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Cameroon Community", version="2.0.0", lifespan=lifespan)
+app = FastAPI(title="Cameroon Community", version="3.0.0", lifespan=lifespan)
 
 
 @app.middleware("http")
@@ -121,68 +142,56 @@ def health(database: Database):
     return {"status": "ok", "service": "community-service"}
 
 
-@app.get("/groups")
-def groups(user: User, database: Database):
-    return database.execute("""SELECT g.*,
-        (SELECT COUNT(*) FROM group_members WHERE group_id = g.id)::int AS member_count,
-        EXISTS(SELECT 1 FROM group_members WHERE group_id = g.id AND user_id = %s) AS joined
-        FROM chat_groups g ORDER BY created_at DESC LIMIT 100""", (user.id,)).fetchall()
-
-
-@app.post("/groups", status_code=201)
-def create_group(payload: GroupCreate, user: User, database: Database):
-    database.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (str(user.id),))
-    count = database.execute("SELECT COUNT(*) AS n FROM chat_groups WHERE owner_id = %s", (user.id,)).fetchone()["n"]
-    if count >= 20:
-        raise HTTPException(429, "Maximum 20 groups per account")
-    group = database.execute("""INSERT INTO chat_groups (id, name, description, owner_id)
-        VALUES (%s,%s,%s,%s) RETURNING *""", ("group-" + str(uuid4()), payload.name, payload.description, user.id)).fetchone()
-    database.execute("INSERT INTO group_members VALUES (%s,%s)", (group["id"], user.id))
-    return {**group, "joined": True, "member_count": 1}
-
-
-@app.post("/groups/{group_id}/join", status_code=204)
-def join_group(group_id: str, user: User, database: Database):
-    if not database.execute("SELECT id FROM chat_groups WHERE id = %s", (group_id,)).fetchone():
-        raise HTTPException(404, "Group not found")
-    database.execute("INSERT INTO group_members VALUES (%s,%s) ON CONFLICT DO NOTHING", (group_id, user.id))
-
-
-@app.delete("/groups/{group_id}/membership", status_code=204)
-def leave_group(group_id: str, user: User, database: Database):
-    database.execute("DELETE FROM group_members WHERE group_id = %s AND user_id = %s", (group_id, user.id))
-
-
 @app.get("/rooms/{slug}/messages")
-def messages(slug: str, user: User, database: Database, limit: int = Query(60, ge=1, le=100)):
+def messages(slug: str, user: User, database: Database, limit: int = Query(60, ge=1, le=100), before: UUID | None = None):
     room_access(database, slug, user)
-    return database.execute("""SELECT * FROM (SELECT * FROM messages WHERE destination_slug = %s
-        ORDER BY created_at DESC, id DESC LIMIT %s) recent ORDER BY created_at, id""", (slug, limit)).fetchall()
+    return database.execute("""SELECT recent.*, CASE WHEN parent.id IS NOT NULL THEN
+        json_build_object('id',parent.id,'display_name',parent.display_name,'body',parent.body,'media_kind',parent.media_kind)
+        ELSE NULL END AS reply FROM (
+        SELECT m.* FROM messages m WHERE m.destination_slug = %s
+        AND NOT EXISTS(SELECT 1 FROM user_blocks WHERE user_id = %s AND blocked_id = m.user_id)
+        AND (%s::uuid IS NULL OR (m.created_at,m.id) <
+            (SELECT created_at,id FROM messages WHERE id = %s AND destination_slug = %s))
+        ORDER BY m.created_at DESC, m.id DESC LIMIT %s) recent
+        LEFT JOIN messages parent ON parent.id = recent.reply_to AND parent.destination_slug = recent.destination_slug
+        AND NOT EXISTS(SELECT 1 FROM user_blocks WHERE user_id = %s AND blocked_id = parent.user_id)
+        ORDER BY recent.created_at,recent.id""", (slug, user.id, before, before, slug, limit, user.id)).fetchall()
 
 
-def insert_message(database, slug, user, body, kind=None):
+def insert_message(database, slug, user, body, kind=None, reply_to=None):
     # Serialize per-user posting and enforce a limit that also applies to uploads.
     database.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (str(user.id),))
     count = database.execute("SELECT COUNT(*) AS n FROM messages WHERE user_id = %s AND created_at > NOW() - INTERVAL '1 minute'", (user.id,)).fetchone()["n"]
     if count >= 20:
         raise HTTPException(429, "Please wait before sending more messages")
-    return database.execute("""INSERT INTO messages (id,destination_slug,user_id,display_name,body,media_kind)
-        VALUES (%s,%s,%s,%s,%s,%s) RETURNING *""", (uuid4(), slug, user.id, user.display_name, body, kind)).fetchone()
+    reply = None
+    if reply_to:
+        reply = database.execute("""SELECT id,display_name,body,media_kind FROM messages m
+            WHERE id = %s AND destination_slug = %s
+            AND NOT EXISTS(SELECT 1 FROM user_blocks WHERE user_id = %s AND blocked_id = m.user_id)
+            FOR SHARE""", (reply_to, slug, user.id)).fetchone()
+        if not reply:
+            raise HTTPException(422, "Reply target is unavailable in this conversation")
+    message = database.execute("""INSERT INTO messages (id,destination_slug,user_id,display_name,body,media_kind,reply_to,is_reply)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *""",
+        (uuid4(), slug, user.id, user.display_name, body, kind, reply_to, reply_to is not None)).fetchone()
+    return {**message, "reply": reply}
 
 
 @app.post("/rooms/{slug}/messages", status_code=201)
 def post_message(slug: str, payload: MessageCreate, user: User, database: Database):
     room_access(database, slug, user)
-    return insert_message(database, slug, user, payload.body)
+    return insert_message(database, slug, user, payload.body, reply_to=payload.reply_to)
 
 
 @app.post("/rooms/{slug}/attachments", status_code=201)
 def post_attachment(slug: str, user: User, database: Database,
-                    file: UploadFile = File(), kind: str = Form(), body: str = Form(default="", max_length=1000)):
+                    file: UploadFile = File(), kind: str = Form(), body: str = Form(default="", max_length=1000),
+                    reply_to: UUID | None = Form(default=None)):
     room_access(database, slug, user)
     data = file.file.read(MAX_UPLOAD + 1)
     clean, content_type = sanitise_media(data, kind)
-    message = insert_message(database, slug, user, body.strip(), kind)
+    message = insert_message(database, slug, user, body.strip(), kind, reply_to)
     database.execute("SELECT pg_advisory_xact_lock(237237)")
     total = database.execute("SELECT COALESCE(SUM(octet_length(data)),0) AS bytes FROM message_media").fetchone()["bytes"]
     if total + len(clean) > int(os.getenv("MEDIA_STORAGE_LIMIT_MB", "1024")) * 1024 * 1024:
@@ -198,7 +207,8 @@ def post_attachment(slug: str, user: User, database: Database,
 @app.get("/media/{message_id}")
 def media(message_id: UUID, user: User, database: Database):
     row = database.execute("""SELECT m.destination_slug, a.content_type, a.data
-        FROM messages m JOIN message_media a ON a.message_id = m.id WHERE m.id = %s""", (message_id,)).fetchone()
+        FROM messages m JOIN message_media a ON a.message_id = m.id WHERE m.id = %s
+        AND NOT EXISTS(SELECT 1 FROM user_blocks WHERE user_id = %s AND blocked_id = m.user_id)""", (message_id,user.id)).fetchone()
     if not row:
         raise HTTPException(404, "Attachment not found")
     room_access(database, row["destination_slug"], user)
@@ -266,3 +276,5 @@ def stats(user: User, database: Database):
 
 from .maps import router as maps_router
 app.include_router(maps_router)
+from .groups import router as groups_router
+app.include_router(groups_router)

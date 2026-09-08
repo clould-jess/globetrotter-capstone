@@ -15,6 +15,8 @@ test("production auth redirects and non-root service files remain safe", async (
   assert.match(gateway, /absolute_redirect off;/);
   assert.match(login, /window\.location\.replace/);
   assert.match(login, /prefetch=\{false\}/);
+  assert.match(login, /className="account-form" method="post"/);
+  assert.match(login, /disabled=\{pending \|\| !hydrated\}/);
   assert.match(auth, /window\.location\.replace\("\/account"\)/);
   assert.doesNotMatch(discovery, /database\.executemany/);
   assert.match(discovery, /cursor\.executemany/);
@@ -112,7 +114,8 @@ test("protects accounts, destination chat and administration", async () => {
   const communityService = compose.match(/^  community-service:[\s\S]*?(?=^  [a-z].*:|^volumes:)/m)?.[0] ?? "";
   assert.doesNotMatch(communityService, /ports:/);
   assert.match(authUi, /\/account\?next=/);
-  assert.match(chatUi, /setInterval/);
+  assert.match(chatUi, /setTimeout/);
+  assert.match(chatUi, /visibilityState/);
   assert.match(dashboard, /active_users_24h/);
   assert.match(dashboard, /admin\/destinations/);
 });

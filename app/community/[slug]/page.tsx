@@ -45,9 +45,8 @@ export default function CommunityRoomPage({ params }: { params: Promise<{ slug: 
             <li><T fr="Ne publiez jamais de données personnelles." en="Never post personal information." /></li>
           </ul>
         </aside>
-        <DestinationChat slug={destination.slug} destinationName={destination.name} />
+        <DestinationChat key={destination.slug} slug={destination.slug} destinationName={destination.name} />
       </section>
     </PageShell>
   );
 }
-

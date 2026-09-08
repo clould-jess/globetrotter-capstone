@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import "./community-features.css";
+import "./messaging.css";
 import { AuthProvider } from "@/components/auth-provider";
 import { DestinationProvider } from "@/components/destination-provider";
 
