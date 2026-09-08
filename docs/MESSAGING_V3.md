@@ -49,6 +49,8 @@ retour qualitatif. Aucun recrutement ni résultat humain n'est présumé.
   caméra simulée, enregistrement simulé, invitation, FR/EN et connexion.
 - Largeurs contrôlées : 320, 390, 820 et 1440 px, sans débordement horizontal.
 - Vérification des types, ESLint et compilation VPS réussis.
+- 8 contrôles de contrats du projet réussis, dont la détection de la base
+  communautaire dans le script de sauvegarde.
 
 Les essais ont corrigé le maintien de la barre sur ordinateur, le retour à
 l'invitation après connexion et le formulaire de connexion avant son activation
@@ -68,4 +70,46 @@ JavaScript (envoi POST et bouton désactivé jusqu'à activation).
 - Les groupes existants restent publics ; nouveaux groupes privés par défaut.
 - Maximum 200 membres par groupe, 20 groupes créés par compte et 100 groupes
   affichés. Invitations révocables valables 7 jours. 80 messages par page.
-- La confirmation sur le site public sera documentée après déploiement.
+
+## Vérification après publication
+
+Version applicative `0914ed251b43e643d954412d8f036254e3250089`, publiée sur
+`main` et sur https://cameroon-169-58-83-56.sslip.io/community.
+La compilation Docker Linux, la santé des services, la configuration Nginx
+et la réponse HTTPS de la passerelle ont été vérifiées.
+
+24 contrôles supplémentaires ont réussi sur le site public avec deux comptes
+temporaires réels, des contenus synthétiques et Edge en affichage mobile :
+
+- Inscription, connexion et création d'un groupe privé.
+- Groupe invisible et messages inaccessibles au non-membre.
+- Invitation, adhésion, échange et réponse liée au message d'origine.
+- Photo convertie en JPEG ; vocal converti en Ogg et lu dans le navigateur.
+- Réponse envoyée depuis l'interface et retrouvée après rechargement.
+- Aucune erreur JavaScript pendant ce parcours.
+- Après exclusion : messages et photo inaccessibles, ancienne invitation refusée.
+
+La capture du parcours public a été inspectée : barre basse à icônes,
+fond clair, bulles vertes et citations visibles. La caméra et le microphone
+physiques restent à vérifier avec des volontaires sur leurs téléphones.
+
+La sauvegarde préalable à cette version se trouve sur le VPS dans
+`/opt/cameroon-backups/release-doR9qFqW`. Seuls les services web,
+communautaire et la passerelle du projet Cameroon ont été redémarrés.
+
+## Nettoyage et sauvegardes
+
+Les deux comptes temporaires, leur unique groupe privé et ses cinq messages
+(avec leurs médias) ont été supprimés après contrôle précis des identifiants.
+Une seconde lecture confirme zéro compte, groupe ou message de ce test.
+Les deux comptes préexistants sont conservés ; le site répond toujours en HTTPS.
+La sauvegarde complète précédant ce nettoyage est conservée dans
+`/opt/cameroon-backups/release-AS9Of6Do` pour permettre une récupération.
+
+Le contrôle préalable a détecté qu'une sauvegarde intermédiaire avait omis
+la base communautaire. La suppression a été bloquée sans modifier les données.
+Le script a été corrigé : il récupère maintenant la liste complète des services
+avant de la tester, ce qui évite une fermeture anticipée du tube sous
+`pipefail`. La nouvelle sauvegarde inclut bien la base communautaire et a été
+vérifiée avant nettoyage. Ne pas utiliser `release-RpZZBqQ2` comme sauvegarde
+complète de cette version.

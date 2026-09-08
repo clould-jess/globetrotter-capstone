@@ -5,6 +5,14 @@ import test from "node:test";
 const readProjectFile = (path) =>
   readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
+test("backup checks community database without an early-closing pipe", async () => {
+  const script = await readProjectFile("scripts/vps-backup.sh");
+  assert.match(script, /compose_services=\$\(docker compose config --services\)/);
+  assert.match(script, /grep -x community-db <<< "\$compose_services"/);
+  assert.doesNotMatch(script, /docker compose config --services\s*\|\s*grep/);
+  assert.match(script, /gzip -t "\$backup_dir\/community\.sql\.gz"/);
+});
+
 test("production auth redirects and non-root service files remain safe", async () => {
   const [gateway, login, auth, discovery] = await Promise.all([
     readProjectFile("backend/gateway/nginx.conf"),

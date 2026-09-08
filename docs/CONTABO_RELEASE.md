@@ -1,12 +1,26 @@
 # Mise en ligne Contabo — 8 septembre 2026
 
-Site : **https://cameroon-169-58-83-56.sslip.io**. Dépôt VPS : `/opt/cameroon-project`, branche `main`, projet Docker `cameroon-project`. Version applicative vérifiée : `53a8b1f` ; les mises à jour documentaires suivantes ne changent pas son fonctionnement.
+Site : **https://cameroon-169-58-83-56.sslip.io**. Dépôt VPS : `/opt/cameroon-project`, branche `main`, projet Docker `cameroon-project`. Version applicative actuelle vérifiée : `0914ed2` (messagerie v3) ; les mises à jour documentaires suivantes ne changent pas son fonctionnement.
+
+## Mise à jour messagerie v3
+
+La messagerie approuvée est publiée : groupes privés sur invitation, réponses
+par glissement ou bouton, citations, barre à icônes, photos et vocaux.
+Le [rapport de messagerie](MESSAGING_V3.md) distingue les tests automatisés,
+les 20 identités simulées en base isolée et les 24 contrôles réussis sur le
+site public avec deux comptes temporaires. Aucun essai avec 20 personnes
+réelles n'est revendiqué.
+
+Sauvegarde avant publication : `/opt/cameroon-backups/release-doR9qFqW`.
+Cette mise à jour a reconstruit et redémarré seulement `web` et
+`community-service`, puis recréé `gateway`. Les autres projets du VPS
+n'ont pas été redémarrés.
 
 ## Administrateur
 
 Le compte demandé a été créé. Ses identifiants initiaux sont dans `/root/cameroon-admin-initial.txt`, lisible uniquement par root sur le VPS. Consultez ce fichier dans votre propre console SSH, sans publier son contenu. Connectez-vous sur `/account`, puis ouvrez `/admin`.
 
-## Bilan de vérification
+## Bilan de vérification de la version initiale (53a8b1f)
 
 Le parcours testé va du navigateur à la passerelle, aux services et aux bases PostgreSQL, puis revient à l’affichage. Deux comptes temporaires et des médias synthétiques ont servi aux essais ; aucune caméra ni aucun microphone personnel n’ont été utilisés.
 
@@ -52,7 +66,7 @@ Ce VPS utilise déjà Nginx et Certbot : **ne pas activer le profil Caddy `https
 ## Limites
 
 - L’adresse sslip.io dépend d’un service DNS tiers, sans domaine personnel.
-- Les groupes sont ouverts aux membres du site, pas privés ni chiffrés de bout en bout.
+- Les anciens groupes restent publics ; les nouveaux peuvent être privés sur invitation. Il n'y a pas de chiffrement de bout en bout. Les messages signalés sont accessibles à la modération.
 - OpenStreetMap/OSRM fournissent cartes et trajets, sans trafic en temps réel. Certaines coordonnées de l’ancien catalogue sont indicatives.
 - La recherche de salles de sport, monuments et ministères dépend d’Overpass : couverture non exhaustive et indisponibilités possibles, signalées dans l’interface.
 - Photos : 12 Mo maximum ; vocaux : 90 secondes. Les autorisations du navigateur sont nécessaires. Les appareils mobiles réels et toutes les versions de Safari n’ont pas été testés.

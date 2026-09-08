@@ -19,7 +19,10 @@ docker compose exec -T user-db pg_dump -U cameroon_user cameroon_users </dev/nul
 docker compose exec -T itinerary-db pg_dump -U cameroon_itinerary cameroon_itineraries </dev/null | gzip > "$backup_dir/itineraries.sql.gz"
 docker compose exec -T discovery-db pg_dump -U cameroon_discovery cameroon_discovery </dev/null | gzip > "$backup_dir/discovery.sql.gz"
 gzip -t "$backup_dir/users.sql.gz" "$backup_dir/itineraries.sql.gz" "$backup_dir/discovery.sql.gz"
-if docker compose config --services | grep -qx community-db; then
+# Read the complete output: grep -q can terminate early and make Compose fail
+# with SIGPIPE under pipefail, silently skipping this database.
+compose_services=$(docker compose config --services)
+if grep -x community-db <<< "$compose_services" >/dev/null; then
   docker compose exec -T community-db pg_dump -U cameroon_community cameroon_community </dev/null | gzip > "$backup_dir/community.sql.gz"
   gzip -t "$backup_dir/community.sql.gz"
 fi
