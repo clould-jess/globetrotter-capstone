@@ -200,15 +200,16 @@ def initialise_database() -> None:
             )
             """
         )
-        database.executemany(
-            """
-            INSERT INTO destinations
-              (slug, name, region_fr, region_en, summary_fr, summary_en, categories, image_url, published)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (slug) DO NOTHING
-            """,
-            SEED_DESTINATIONS,
-        )
+        with database.cursor() as cursor:
+            cursor.executemany(
+                """
+                INSERT INTO destinations
+                  (slug, name, region_fr, region_en, summary_fr, summary_en, categories, image_url, published)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (slug) DO NOTHING
+                """,
+                SEED_DESTINATIONS,
+            )
 
 
 @asynccontextmanager
