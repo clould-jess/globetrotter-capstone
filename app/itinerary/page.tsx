@@ -1,11 +1,12 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/page-shell";
 import { T } from "@/components/t";
 import { destinations } from "@/lib/destinations";
+import { RoadMap } from "@/components/road-map";
 
 const STORAGE_KEY = "cameroon-itinerary";
 
@@ -39,6 +40,22 @@ export default function ItineraryPage() {
   }, [loaded, stops]);
 
   const selectedStops = useMemo(() => stops.map((slug) => destinations.find((destination) => destination.slug === slug)).filter(Boolean), [stops]);
+  const googleMapsRoute = useMemo(() => {
+    const routeStops = selectedStops
+      .filter((destination): destination is (typeof destinations)[number] => Boolean(destination))
+      .slice(0, 9);
+    if (!routeStops.length) return "";
+    const destination = routeStops.at(-1);
+    if (!destination) return "";
+    const params = new URLSearchParams({
+      api: "1",
+      destination: `${destination.name}, ${destination.region.fr}, Cameroun`,
+      travelmode: "driving",
+    });
+    const waypoints = routeStops.slice(0, -1).map((stop) => `${stop.name}, ${stop.region.fr}, Cameroun`);
+    if (waypoints.length) params.set("waypoints", waypoints.join("|"));
+    return `https://www.google.com/maps/dir/?${params.toString()}`;
+  }, [selectedStops]);
   const addStop = () => setStops((current) => current.includes(selected) ? current : [...current, selected]);
   const move = (index: number, offset: number) => {
     const target = index + offset;
@@ -64,6 +81,7 @@ export default function ItineraryPage() {
           <p><T fr="Ajoutez, classez et partagez vos étapes préférées." en="Add, arrange and share your favourite stops." /></p>
         </div>
       </section>
+      <section className="container section-small"><RoadMap /></section>
       <section className="itinerary-workspace container section-small">
         <aside className="itinerary-sidebar">
           <p className="eyebrow"><T fr="Ajouter une étape" en="Add a stop" /></p>
@@ -77,7 +95,10 @@ export default function ItineraryPage() {
         <div className="itinerary-board">
           <div className="itinerary-board-head">
             <div><p className="eyebrow"><T fr="Mon voyage" en="My trip" /></p><h2>{stops.length} <T fr="étape(s)" en="stop(s)" /></h2></div>
-            <button type="button" className="share-button" disabled={!stops.length} onClick={share}>↗ <T fr="Partager" en="Share" /></button>
+            <div className="itinerary-board-actions">
+              {googleMapsRoute && <a className="google-route-button" href={googleMapsRoute} target="_blank" rel="noreferrer">⌖ <T fr="Ouvrir dans Google Maps" en="Open in Google Maps" /></a>}
+              <button type="button" className="share-button" disabled={!stops.length} onClick={share}>↗ <T fr="Partager" en="Share" /></button>
+            </div>
           </div>
           {message && <p className="share-message" role="status">{message}</p>}
           {selectedStops.length ? (

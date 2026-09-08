@@ -9,6 +9,11 @@ Préfixe de la passerelle : `/api/v1`. Chaque réponse d’erreur suit le format
 | `POST` | `/api/v1/users` | Créer un profil |
 | `GET` | `/api/v1/users/{id}` | Lire son profil, ou tout profil pour un administrateur |
 | `GET` | `/api/v1/users` | Liste paginée réservée à l’administrateur |
+| `POST` | `/api/v1/auth/register` | Créer un compte et ouvrir une session |
+| `POST` | `/api/v1/auth/login` | Ouvrir une session |
+| `POST` | `/api/v1/auth/logout` | Révoquer la session |
+| `GET` | `/api/v1/auth/session` | Lire le compte connecté |
+| `GET` | `/api/v1/admin/user-stats` | Statistiques réservées à l’administrateur |
 
 Exemple de création :
 
@@ -55,8 +60,21 @@ La mise à jour accepte un sous-ensemble de `title`, `stops` et `visibility`.
 | `GET` | `/api/v1/discovery/recommendations` | Suggestions par intérêt et rythme |
 | `POST` | `/api/v1/discovery/admin/destinations` | Créer un brouillon ou contenu publié |
 | `POST` | `/api/v1/discovery/admin/destinations/{slug}/publish` | Publier |
+| `GET` | `/api/v1/discovery/admin/destinations` | Lister brouillons et contenus publiés |
+| `PATCH` | `/api/v1/discovery/admin/destinations/{slug}` | Modifier le contenu |
 
 Paramètres de recherche : `query`, `category` et `limit`. Paramètres de recommandation : `interest` et `pace` (`relaxed`, `balanced`, `active`). Les routes d’administration attendent un rôle `admin` déjà vérifié.
+
+## Community Service
+
+Toutes les routes passent par une session vérifiée par la passerelle.
+
+| Méthode | Route passerelle | Rôle |
+| --- | --- | --- |
+| `GET` | `/api/v1/community/rooms/{destination}/messages` | Lire les messages du salon |
+| `POST` | `/api/v1/community/rooms/{destination}/messages` | Publier un message |
+| `DELETE` | `/api/v1/community/messages/{id}` | Supprimer son message, ou modérer en admin |
+| `GET` | `/api/v1/admin/community-stats` | Statistiques de discussion admin |
 
 ## Événements
 
@@ -69,4 +87,3 @@ Exchange RabbitMQ : `cameroon.events`, type `topic`, messages JSON durables.
 | `itinerary.deleted` | Itinéraire supprimé |
 
 Les événements contiennent seulement les identifiants nécessaires. Les emails et contenus complets ne circulent pas sur le bus.
-

@@ -1,11 +1,12 @@
-/* eslint-disable @next/next/no-img-element */
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useMemo, useState } from "react";
 import { DestinationCard } from "@/components/destination-card";
 import { PageShell } from "@/components/page-shell";
 import { T } from "@/components/t";
-import { categoryLabels, destinations } from "@/lib/destinations";
+import { useDestinations } from "@/components/destination-provider";
+import { categoryLabels } from "@/lib/destinations";
 
 type Category = keyof typeof categoryLabels;
 
@@ -15,6 +16,7 @@ const regions = [
 ];
 
 export default function ExplorePage() {
+  const { destinations } = useDestinations();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<Category>("all");
 
@@ -33,7 +35,7 @@ export default function ExplorePage() {
       const searchable = `${destination.name} ${destination.region.fr} ${destination.region.en} ${destination.summary.fr} ${destination.summary.en}`.toLocaleLowerCase("fr");
       return matchesCategory && (!clean || searchable.includes(clean));
     });
-  }, [category, query]);
+  }, [category, destinations, query]);
 
   return (
     <PageShell>

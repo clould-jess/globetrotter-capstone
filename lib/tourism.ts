@@ -1,12 +1,20 @@
-import type { Localized } from "./destinations";
+import { destinations, type Localized } from "./destinations";
 
-export type TouristPlaceType = "hotel" | "restaurant" | "activity";
+export type TouristPlaceType =
+  | "hotel"
+  | "motel"
+  | "apartment"
+  | "restaurant"
+  | "fastfood"
+  | "car-rental"
+  | "activity";
 
 export type TouristPlace = {
   id: string;
   name: string;
   type: TouristPlaceType;
   city: string;
+  region?: Localized;
   area: Localized;
   coordinates: { lat: number; lng: number };
   summary: Localized;
@@ -14,15 +22,16 @@ export type TouristPlace = {
   tags: Localized[];
   destinationSlugs: string[];
   sourceUrl: string;
-  image: string;
-  imageAlt: Localized;
-  imagePage: string;
-  imageCredit: string;
-  imageLicense: string;
-  imageKind: "place" | "context";
+  mapsQuery?: string;
+  image?: string;
+  imageAlt?: Localized;
+  imagePage?: string;
+  imageCredit?: string;
+  imageLicense?: string;
+  imageKind?: "place" | "context";
 };
 
-export const tourismPlaces: TouristPlace[] = [
+const featuredTourismPlaces: TouristPlace[] = [
   {
     id: "hilton-yaounde",
     name: "Hilton Yaoundé",
@@ -489,17 +498,193 @@ export const tourismPlaces: TouristPlace[] = [
   },
 ];
 
+type RegionalHub = {
+  region: Localized;
+  city: string;
+  coordinates: { lat: number; lng: number };
+  destinationSlugs: string[];
+};
+
+const regionalHubs: RegionalHub[] = [
+  { region: { fr: "Extrême-Nord", en: "Far North" }, city: "Maroua", coordinates: { lat: 10.591, lng: 14.315 }, destinationSlugs: ["rhumsiki", "waza"] },
+  { region: { fr: "Nord", en: "North" }, city: "Garoua", coordinates: { lat: 9.301, lng: 13.397 }, destinationSlugs: ["benoue"] },
+  { region: { fr: "Adamaoua", en: "Adamawa" }, city: "Ngaoundéré", coordinates: { lat: 7.327, lng: 13.584 }, destinationSlugs: ["tello"] },
+  { region: { fr: "Nord-Ouest", en: "North-West" }, city: "Bamenda", coordinates: { lat: 5.959, lng: 10.146 }, destinationSlugs: ["lake-awing"] },
+  { region: { fr: "Ouest", en: "West" }, city: "Bafoussam", coordinates: { lat: 5.478, lng: 10.418 }, destinationSlugs: ["foumban"] },
+  { region: { fr: "Sud-Ouest", en: "South-West" }, city: "Buea", coordinates: { lat: 4.155, lng: 9.231 }, destinationSlugs: ["mont-cameroun", "limbe"] },
+  { region: { fr: "Littoral", en: "Littoral" }, city: "Douala", coordinates: { lat: 4.052, lng: 9.768 }, destinationSlugs: ["ekom-nkam"] },
+  { region: { fr: "Centre", en: "Centre" }, city: "Yaoundé", coordinates: { lat: 3.848, lng: 11.502 }, destinationSlugs: ["yaounde"] },
+  { region: { fr: "Est", en: "East" }, city: "Bertoua", coordinates: { lat: 4.577, lng: 13.684 }, destinationSlugs: ["dja", "lobeke"] },
+  { region: { fr: "Sud", en: "South" }, city: "Kribi", coordinates: { lat: 2.94, lng: 9.91 }, destinationSlugs: ["kribi"] },
+];
+
+const serviceBlueprints: Array<{
+  key: string;
+  type: Exclude<TouristPlaceType, "activity">;
+  title: Localized;
+  summary: Localized;
+  details: Localized;
+  query: Localized;
+  tags: Localized[];
+}> = [
+  {
+    key: "hotels-lodges", type: "hotel",
+    title: { fr: "Hôtels & lodges", en: "Hotels & lodges" },
+    summary: { fr: "Comparez les hôtels, resorts et lodges disponibles autour de la ville et de ses principaux sites.", en: "Compare hotels, resorts and lodges around the city and its main sights." },
+    details: { fr: "Tarifs, disponibilités et services à confirmer avant réservation", en: "Confirm rates, availability and services before booking" },
+    query: { fr: "hôtels et lodges", en: "hotels and lodges" },
+    tags: [{ fr: "Séjour", en: "Stay" }, { fr: "Comparaison", en: "Compare" }, { fr: "Réservation", en: "Booking" }],
+  },
+  {
+    key: "motels-guesthouses", type: "motel",
+    title: { fr: "Motels & maisons d’hôtes", en: "Motels & guesthouses" },
+    summary: { fr: "Repérez des solutions plus simples, des auberges et des maisons d’hôtes proches de votre parcours.", en: "Find simpler stays, inns and guesthouses close to your route." },
+    details: { fr: "Vérifiez avis récents, accès, sécurité et conditions d’arrivée", en: "Check recent reviews, access, security and arrival conditions" },
+    query: { fr: "motels maisons d'hôtes auberges", en: "motels guesthouses inns" },
+    tags: [{ fr: "Petit budget", en: "Budget" }, { fr: "Local", en: "Local" }, { fr: "Nuitée", en: "Overnight" }],
+  },
+  {
+    key: "apartments", type: "apartment",
+    title: { fr: "Appartements & locations", en: "Apartments & rentals" },
+    summary: { fr: "Trouvez des appartements meublés et locations de courte durée pour voyager en autonomie.", en: "Find furnished apartments and short stays for more independent travel." },
+    details: { fr: "Confirmez l’identité de l’hôte, l’adresse et les modalités de paiement", en: "Confirm the host, address and payment terms" },
+    query: { fr: "appartements meublés location courte durée", en: "furnished apartments short stay" },
+    tags: [{ fr: "Meublé", en: "Furnished" }, { fr: "Famille", en: "Family" }, { fr: "Long séjour", en: "Long stay" }],
+  },
+  {
+    key: "restaurants", type: "restaurant",
+    title: { fr: "Restaurants & cuisine locale", en: "Restaurants & local food" },
+    summary: { fr: "Découvrez les tables camerounaises, grillades, poisson, plats régionaux et cuisines internationales.", en: "Discover Cameroonian tables, grills, fish, regional dishes and international food." },
+    details: { fr: "Menus, horaires et modes de paiement à vérifier le jour même", en: "Check menus, hours and payment methods the same day" },
+    query: { fr: "restaurants cuisine camerounaise", en: "restaurants Cameroonian food" },
+    tags: [{ fr: "Cuisine locale", en: "Local food" }, { fr: "En famille", en: "Family-friendly" }, { fr: "Découverte", en: "Discovery" }],
+  },
+  {
+    key: "fastfood", type: "fastfood",
+    title: { fr: "Fast-foods & snacks", en: "Fast food & snacks" },
+    summary: { fr: "Repérez rapidement burgers, poulet, pizza, shawarma, boulangeries et restauration camerounaise rapide.", en: "Quickly find burgers, chicken, pizza, shawarma, bakeries and Cameroonian fast food." },
+    details: { fr: "Consultez les horaires, notes et options de livraison sur la carte", en: "Check hours, ratings and delivery options on the map" },
+    query: { fr: "fast food snack burgers pizza", en: "fast food snacks burgers pizza" },
+    tags: [{ fr: "Rapide", en: "Quick" }, { fr: "À emporter", en: "Takeaway" }, { fr: "Livraison", en: "Delivery" }],
+  },
+  {
+    key: "car-rental", type: "car-rental",
+    title: { fr: "Location de véhicules", en: "Car rental" },
+    summary: { fr: "Comparez les agences, véhicules avec ou sans chauffeur et points de prise en charge disponibles.", en: "Compare agencies, self-drive or chauffeur options and available pickup points." },
+    details: { fr: "Contrat, assurance, caution, permis et état du véhicule à contrôler", en: "Check contract, insurance, deposit, licence and vehicle condition" },
+    query: { fr: "location de voitures agence véhicule avec chauffeur", en: "car rental agency chauffeur" },
+    tags: [{ fr: "Mobilité", en: "Mobility" }, { fr: "Chauffeur", en: "Driver" }, { fr: "Assurance", en: "Insurance" }],
+  },
+];
+
+function googleMapsSearch(query: string) {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+const regionalServicePlaces: TouristPlace[] = regionalHubs.flatMap((hub) =>
+  serviceBlueprints.map((service, index) => {
+    const mapsQuery = `${service.query.fr}, ${hub.city}, Cameroun`;
+    return {
+      id: `${service.key}-${hub.city.toLocaleLowerCase("fr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-")}`,
+      name: `${service.title.fr} · ${hub.city}`,
+      type: service.type,
+      city: hub.city,
+      region: hub.region,
+      area: { fr: `${hub.region.fr} · autour de ${hub.city}`, en: `${hub.region.en} · around ${hub.city}` },
+      coordinates: { lat: hub.coordinates.lat + index * 0.003, lng: hub.coordinates.lng + index * 0.002 },
+      summary: service.summary,
+      details: service.details,
+      tags: service.tags,
+      destinationSlugs: hub.destinationSlugs,
+      sourceUrl: googleMapsSearch(mapsQuery),
+      mapsQuery,
+    };
+  }),
+);
+
+const expandedAdventureSlugs = new Set(["waza", "benoue", "tello", "lake-awing", "limbe", "dja", "lobeke"]);
+const regionalAdventurePlaces: TouristPlace[] = destinations
+  .filter((destination) => expandedAdventureSlugs.has(destination.slug))
+  .map((destination, index) => ({
+    id: `adventure-${destination.slug}`,
+    name: destination.name,
+    type: "activity",
+    city: destination.slug === "waza" ? "Waza" : destination.slug === "benoue" ? "Garoua" : destination.slug === "tello" ? "Ngaoundéré" : destination.slug === "lake-awing" ? "Bamenda" : destination.slug === "limbe" ? "Limbé" : destination.slug === "dja" ? "Lomié" : "Moloundou",
+    region: destination.region,
+    area: { fr: destination.region.fr, en: destination.region.en },
+    coordinates: [
+      { lat: 11.33, lng: 14.55 }, { lat: 8.31, lng: 13.94 }, { lat: 7.18, lng: 13.73 },
+      { lat: 5.86, lng: 10.13 }, { lat: 4.01, lng: 9.2 }, { lat: 3.05, lng: 13.3 }, { lat: 2.23, lng: 15.75 },
+    ][index],
+    summary: destination.summary,
+    details: { fr: `${destination.duration.fr} · meilleure période : ${destination.season.fr} · accompagnement local recommandé`, en: `${destination.duration.en} · best period: ${destination.season.en} · local guidance recommended` },
+    tags: destination.highlights,
+    destinationSlugs: [destination.slug],
+    sourceUrl: destination.imagePage,
+    mapsQuery: `${destination.name}, Cameroun`,
+    image: destination.image,
+    imageAlt: { fr: destination.name, en: destination.name },
+    imagePage: destination.imagePage,
+    imageCredit: destination.credit,
+    imageLicense: destination.license,
+    imageKind: "place",
+  }));
+
+const verifiedCarRentals: TouristPlace[] = [
+  {
+    id: "avis-yaounde", name: "Avis Yaoundé", type: "car-rental", city: "Yaoundé", region: { fr: "Centre", en: "Centre" },
+    area: { fr: "Hilton Yaoundé et agence centre-ville", en: "Hilton Yaoundé and downtown branch" },
+    coordinates: { lat: 3.8646, lng: 11.5157 },
+    summary: { fr: "Deux points de location annoncés à Yaoundé, dont un au Hilton.", en: "Two advertised rental points in Yaoundé, including one at the Hilton." },
+    details: { fr: "Horaires, catégorie, assurance et disponibilité à confirmer", en: "Confirm hours, category, insurance and availability" },
+    tags: [{ fr: "Agence", en: "Agency" }, { fr: "Centre-ville", en: "City centre" }, { fr: "Véhicules", en: "Vehicles" }],
+    destinationSlugs: ["yaounde"], sourceUrl: "https://www.avis.com/en/locations/af/cm/yaounde", mapsQuery: "Avis car rental Yaoundé Cameroon",
+  },
+  {
+    id: "avis-douala-airport", name: "Avis Douala Aéroport", type: "car-rental", city: "Douala", region: { fr: "Littoral", en: "Littoral" },
+    area: { fr: "Aéroport international de Douala", en: "Douala International Airport" },
+    coordinates: { lat: 4.0061, lng: 9.7195 },
+    summary: { fr: "Un point de prise en charge annoncé directement à l’aéroport de Douala.", en: "An advertised pickup point directly at Douala airport." },
+    details: { fr: "Réservation, dépôt, assurance et retour à confirmer", en: "Confirm booking, deposit, insurance and return" },
+    tags: [{ fr: "Aéroport", en: "Airport" }, { fr: "Agence", en: "Agency" }, { fr: "Prise en charge", en: "Pickup" }],
+    destinationSlugs: ["ekom-nkam"], sourceUrl: "https://www.avis.com/en/locations/af/cm/douala/dla", mapsQuery: "Avis car rental Douala Airport Cameroon",
+  },
+];
+
+export const tourismPlaces: TouristPlace[] = [
+  ...featuredTourismPlaces,
+  ...regionalAdventurePlaces,
+  ...verifiedCarRentals,
+  ...regionalServicePlaces,
+];
+
+const cityRegionMap = new Map(regionalHubs.map((hub) => [hub.city, hub.region]));
+for (const place of tourismPlaces) if (place.region) cityRegionMap.set(place.city, place.region);
+
+export function getPlaceRegion(place: TouristPlace): Localized {
+  return place.region ?? cityRegionMap.get(place.city) ?? { fr: place.city, en: place.city };
+}
+
 export const tourismCities = [...new Set(tourismPlaces.map((place) => place.city))].sort();
+export const tourismRegions = [...new Set(regionalHubs.map((hub) => hub.region.fr))];
 
 export const tourismTypeLabels: Record<TouristPlaceType | "all", Localized> = {
   all: { fr: "Tout voir", en: "All places" },
   hotel: { fr: "Hôtels", en: "Hotels" },
+  motel: { fr: "Motels", en: "Motels" },
+  apartment: { fr: "Apparts", en: "Apartments" },
   restaurant: { fr: "Restaurants", en: "Restaurants" },
+  fastfood: { fr: "Fast-food", en: "Fast food" },
+  "car-rental": { fr: "Véhicules", en: "Car rental" },
   activity: { fr: "À faire", en: "Things to do" },
 };
 
 export const tourismTypeIcons: Record<TouristPlaceType, string> = {
   hotel: "⌂",
+  motel: "▤",
+  apartment: "▦",
   restaurant: "◒",
+  fastfood: "◉",
+  "car-rental": "◆",
   activity: "✦",
 };

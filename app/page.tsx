@@ -1,11 +1,14 @@
+"use client";
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { DestinationCard } from "@/components/destination-card";
 import { PageShell } from "@/components/page-shell";
 import { T } from "@/components/t";
-import { destinations } from "@/lib/destinations";
+import { useDestinations } from "@/components/destination-provider";
 
 export default function Home() {
+  const { destinations } = useDestinations();
+  const adventureDestinations = destinations.filter((destination) => destination.categories.includes("adventure"));
   return (
     <PageShell>
       <section className="hero-home">
@@ -99,40 +102,29 @@ export default function Home() {
 
       <section className="journey-section section container">
         <div className="section-heading centered-heading">
-          <p className="eyebrow"><T fr="Choisissez votre rythme" en="Choose your rhythm" /></p>
-          <h2><T fr="Quel Cameroun vous appelle ?" en="Which Cameroon is calling?" /></h2>
+          <p className="eyebrow"><T fr="Aventures à travers les régions" en="Adventures across the regions" /></p>
+          <h2><T fr="Des paysages qui donnent envie de partir." en="Landscapes that make you want to go." /></h2>
         </div>
-        <div className="journey-grid">
-          <Link href="/explore?category=adventure" className="journey-tile journey-green">
-            <span className="tile-index">01</span>
-            <div className="tile-symbol mountain-symbol" aria-hidden="true"><i /><i /><i /></div>
-            <h3><T fr="Prendre de la hauteur" en="Climb higher" /></h3>
-            <p><T fr="Volcans, hauts plateaux et sentiers." en="Volcanoes, highlands and trails." /></p>
-          </Link>
-          <Link href="/explore?category=beach" className="journey-tile journey-sand">
-            <span className="tile-index">02</span>
-            <div className="tile-symbol sun-symbol" aria-hidden="true" />
-            <h3><T fr="Suivre l’océan" en="Follow the ocean" /></h3>
-            <p><T fr="Plages, pêche et douceur atlantique." en="Beaches, fishing and Atlantic calm." /></p>
-          </Link>
-          <Link href="/explore?category=culture" className="journey-tile journey-red">
-            <span className="tile-index">03</span>
-            <div className="tile-symbol weave-symbol" aria-hidden="true"><i /><i /><i /><i /></div>
-            <h3><T fr="Rencontrer les cultures" en="Meet the cultures" /></h3>
-            <p><T fr="Patrimoine, arts et savoir-faire." en="Heritage, art and craft." /></p>
-          </Link>
-          <Link href="/explore?category=nature" className="journey-tile journey-ink">
-            <span className="tile-index">04</span>
-            <div className="tile-symbol leaf-symbol" aria-hidden="true" />
-            <h3><T fr="Entrer dans le vivant" en="Step into the wild" /></h3>
-            <p><T fr="Forêts, cascades et savanes." en="Forests, waterfalls and savanna." /></p>
-          </Link>
+        <div className="adventure-showcase-grid">
+          {adventureDestinations.slice(0, 8).map((destination, index) => (
+            <Link key={destination.slug} href={`/destinations/${destination.slug}`} className="adventure-showcase-card">
+              <img src={destination.image} alt={destination.name} loading="lazy" />
+              <span className="adventure-showcase-shade" />
+              <span className="adventure-showcase-index">{String(index + 1).padStart(2, "0")}</span>
+              <span className="adventure-showcase-copy">
+                <small>{destination.region.fr}</small>
+                <strong>{destination.name}</strong>
+                <em><T fr={destination.summary.fr} en={destination.summary.en} /></em>
+              </span>
+            </Link>
+          ))}
         </div>
+        <div className="adventure-showcase-more"><Link className="button button-forest" href="/explore?category=adventure"><T fr="Voir toutes les aventures" en="See all adventures" /> →</Link></div>
       </section>
 
       <section className="planner-banner">
         <div className="planner-photo">
-          <img src={destinations[3].image} alt="Paysage de Rhumsiki dans l’Extrême-Nord" loading="lazy" />
+          {destinations[3] && <img src={destinations[3].image} alt={destinations[3].name} loading="lazy" />}
         </div>
         <div className="planner-copy">
           <p className="eyebrow light"><T fr="Votre voyage, votre tempo" en="Your journey, your pace" /></p>

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { DestinationCard } from "@/components/destination-card";
 import { PageShell } from "@/components/page-shell";
 import { T } from "@/components/t";
-import { destinations } from "@/lib/destinations";
+import { useDestinations } from "@/components/destination-provider";
 
 const interests = [
   { key: "nature", icon: "◒", fr: "Nature", en: "Nature" },
@@ -15,6 +15,7 @@ const interests = [
 ] as const;
 
 export default function RecommendationsPage() {
+  const { destinations } = useDestinations();
   const [selected, setSelected] = useState<string[]>(["nature"]);
   const [pace, setPace] = useState<"slow" | "balanced" | "intense">("balanced");
   const recommendations = useMemo(() => {
@@ -26,7 +27,7 @@ export default function RecommendationsPage() {
       .sort((a, b) => b.score - a.score)
       .slice(0, pace === "slow" ? 2 : 3)
       .map((item) => item.destination);
-  }, [pace, selected]);
+  }, [destinations, pace, selected]);
 
   const toggle = (key: string) => setSelected((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key]);
 

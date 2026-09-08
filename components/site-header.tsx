@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { LanguageToggle } from "./language-toggle";
+import { GlobalSearch } from "./global-search";
 import { T } from "./t";
+import { AccountMenu } from "./account-menu";
 
 export function SiteHeader() {
   return (
@@ -22,10 +24,12 @@ export function SiteHeader() {
           <Link href="/guide"><T fr="Séjour & sorties" en="Stay & enjoy" /></Link>
           <Link href="/recommendations"><T fr="Inspirations" en="Inspiration" /></Link>
           <Link href="/itinerary"><T fr="Mon itinéraire" en="My itinerary" /></Link>
-          <Link href="/architecture"><T fr="Le projet" en="The project" /></Link>
+          <Link href="/community"><T fr="Discussions" en="Community" /></Link>
         </nav>
+        <GlobalSearch />
         <div className="header-actions">
           <LanguageToggle />
+          <AccountMenu />
           <Link className="header-cta" href="/itinerary">
             <T fr="Créer un voyage" en="Plan a trip" />
           </Link>

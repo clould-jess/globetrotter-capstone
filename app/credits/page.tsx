@@ -2,7 +2,13 @@
 import { PageShell } from "@/components/page-shell";
 import { T } from "@/components/t";
 import { destinations } from "@/lib/destinations";
-import { tourismPlaces } from "@/lib/tourism";
+import { tourismPlaces, type TouristPlace } from "@/lib/tourism";
+
+type CreditedPlace = TouristPlace & Required<Pick<TouristPlace, "image" | "imageAlt" | "imagePage" | "imageCredit" | "imageLicense">>;
+
+const creditedTourismPlaces = tourismPlaces.filter((place): place is CreditedPlace => Boolean(
+  place.image && place.imageAlt && place.imagePage && place.imageCredit && place.imageLicense,
+));
 
 export default function CreditsPage() {
   return (
@@ -18,7 +24,7 @@ export default function CreditsPage() {
           </article>
         ))}
         <div className="credits-section-title"><p>02</p><h2><T fr="Hôtels, restaurants et activités" en="Hotels, restaurants and activities" /></h2></div>
-        {tourismPlaces.map((place) => (
+        {creditedTourismPlaces.map((place) => (
           <article key={place.id}>
             <img src={place.image} alt={place.imageAlt.fr} loading="lazy" />
             <div>

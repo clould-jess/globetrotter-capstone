@@ -10,10 +10,12 @@ flowchart TD
     GW --> US[User Service]
     GW --> IS[Itinerary Service]
     GW --> DS[Discovery Service]
+    GW --> CS[Community Service]
     IS --> MQ[RabbitMQ]
     US --> UDB[(User DB)]
     IS --> IDB[(Itinerary DB)]
     DS --> DDB[(Discovery DB)]
+    CS --> CDB[(Community DB)]
 ```
 
 ## Phase 1 — prototype validé
@@ -28,9 +30,16 @@ Le frontend Vinext/React embarque un catalogue TypeScript. Les préférences de 
 | User Service | Profils et rôles | Utilisateurs |
 | Itinerary Service | Création, modification, partage et suppression | Itinéraires et étapes |
 | Discovery Service | Catalogue, recherche, recommandations et publication | Destinations |
+| Community Service | Messages associés à une destination et modération | Messages |
 | RabbitMQ | Événements asynchrones d’itinéraire | Messages temporaires |
 
 Chaque service expose son propre document OpenAPI et possède une base PostgreSQL distincte. Il est interdit à un service de lire directement la base d’un autre service.
+
+## Identité et sessions
+
+Le navigateur reçoit un cookie de session `HttpOnly`, `SameSite=Strict` et `Secure` en production. La passerelle utilise `auth_request` pour demander au User Service de vérifier la session. Elle remplace toute identité reçue du navigateur par `X-User-ID`, `X-User-Role` et le nom affiché vérifiés avant d’appeler les services internes. Community Service n’expose aucun port sur l’hôte.
+
+Les mots de passe utilisent `scrypt` avec un sel aléatoire par compte. Seul le condensat SHA-256 du jeton de session est conservé en base.
 
 ## Flux importants
 
@@ -61,4 +70,3 @@ Chaque service expose son propre document OpenAPI et possède une base PostgreSQ
 2. Ajouter une authentification OIDC/JWT à la passerelle.
 3. Remplacer la création de schéma au démarrage par des migrations versionnées.
 4. Ajouter traces distribuées, métriques, sauvegardes testées et déploiement orchestré.
-

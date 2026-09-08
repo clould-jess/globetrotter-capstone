@@ -9,10 +9,11 @@ test("renders development preview metadata", async () => {
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
-  const response = await worker.fetch(
-    new Request("http://localhost/", {
+  const request = new Request("http://localhost/", {
       headers: { accept: "text/html" },
-    }),
+    });
+  const response = typeof worker === "function" ? await worker(request) : await worker.fetch(
+    request,
     {
       ASSETS: {
         fetch: async () => new Response("Not found", { status: 404 }),

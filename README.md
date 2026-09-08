@@ -1,5 +1,7 @@
 # Cameroon Project
 
+> Nouvelle version communautaire : comptes, groupes, photos, vocaux, avis et itinéraires routiers. Pour la mise à jour du VPS existant, suivre [le guide de cette version](docs/COMMUNITY_VPS_RELEASE.md) avant toute commande de déploiement. Le site requiert les services Docker et HTTPS pour la caméra, le microphone et la géolocalisation.
+
 Plateforme bilingue de découverte du Cameroun, conçue comme un projet scolaire complet : expérience éditoriale, recherche de destinations, recommandations, carnet de voyage et architecture évolutive.
 
 ## Ce qui est inclus
@@ -10,6 +12,9 @@ Plateforme bilingue de découverte du Cameroun, conçue comme un projet scolaire
 - Questionnaire de recommandations.
 - Itinéraire local : ajout, ordre, suppression et lien de partage.
 - Guide touristique avec hôtels, restaurants, sorties, filtres et carte OpenStreetMap interactive.
+- Comptes obligatoires avec mot de passe haché, session révocable et rôles utilisateur/administrateur.
+- Discussions de groupe séparées pour chaque destination.
+- Tableau de bord administrateur : audience, activité des salons et édition du catalogue publié.
 - Sélections pratiques intégrées aux fiches de destination.
 - Routes JSON légères pour le prototype (`/api/health`, `/api/destinations`, `/api/recommendations`).
 - Socle phase 2 dans `backend/` : passerelle Nginx, trois services FastAPI, trois bases PostgreSQL et RabbitMQ.
@@ -49,6 +54,7 @@ Services locaux :
 | User Service / OpenAPI | `http://localhost:8001/docs` |
 | Itinerary Service / OpenAPI | `http://localhost:8002/docs` |
 | Discovery Service / OpenAPI | `http://localhost:8003/docs` |
+| Community Service (réseau Docker uniquement) | `community-service:8000/docs` |
 | RabbitMQ Management | `http://localhost:15672` |
 
 Les mots de passe fournis sont réservés au développement local. Ils doivent être remplacés par des secrets gérés dans tout environnement partagé.
@@ -61,7 +67,7 @@ components/          Composants React réutilisables
 lib/                 Catalogues éditoriaux et touristiques typés
 backend/
   gateway/            Passerelle et limites de trafic
-  services/           User, Itinerary et Discovery services
+  services/           User, Itinerary, Discovery et Community services
   docker-compose.yml  Environnement distribué local
 docs/                 Architecture, sécurité et contrats
 tests/                Vérifications automatisées
@@ -72,6 +78,7 @@ tests/                Vérifications automatisées
 La phase 1 valide l’expérience avec un catalogue embarqué et un itinéraire conservé dans le navigateur. La phase 2 fournit le découpage cible : chaque domaine possède son service et sa base, la passerelle centralise l’entrée et RabbitMQ transporte les événements d’itinéraire. Le frontend hébergé reste utilisable seul ; le dossier `backend/` sert de socle exécutable pour la connexion serveur suivante.
 
 Consulter [l’architecture](docs/ARCHITECTURE.md), [les contrats API](docs/API_CONTRACTS.md) et [le dossier sécurité](docs/SECURITY.md).
+Pour la mise en production, suivre [le guide VPS](docs/VPS_DEPLOYMENT.md).
 
 ## Crédits
 

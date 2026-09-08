@@ -1,47 +1,66 @@
 name: cameroon-project
 
 services:
+  https:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_HOST: ${SITE_HOST:-cameroon-169-58-83-56.sslip.io}
+    volumes:
+      - ./gateway/Caddyfile:/etc/caddy/Caddyfile:ro
+      - https-data:/data
+      - https-config:/config
+    depends_on:
+      - gateway
+    restart: unless-stopped
+
   web:
     build:
       context: ..
-      dockerfile: Dockerfile
-    ports:
-      - "3001:3000"
-    environment:
-      NODE_ENV: production
-      API_GATEWAY_URL: http://gateway:8080
-    depends_on:
-      gateway:
-        condition: service_healthy
+      dockerfile: Dockerfile.vps
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/account').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
     restart: unless-stopped
 
   gateway:
     image: nginx:1.27-alpine
     ports:
-      - "8085:8080"
+      - "${BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3001}:8080"
     volumes:
       - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
+      web:
+        condition: service_healthy
       user-service:
         condition: service_healthy
       itinerary-service:
         condition: service_healthy
       discovery-service:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/health || exit 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
-      start_period: 15s
+      community-service:
+        condition: service_healthy
     restart: unless-stopped
 
   user-service:
     build: ./services/user-service
-    ports:
-      - "8001:8000"
+    expose:
+      - "8000"
     environment:
       DATABASE_URL: postgresql://cameroon_user:${USER_DB_PASSWORD:-cameroon_user_prod}@user-db:5432/cameroon_users
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_DISPLAY_NAME: ${ADMIN_DISPLAY_NAME:-Administrateur}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-720}
     depends_on:
       user-db:
         condition: service_healthy
@@ -49,14 +68,13 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
       timeout: 3s
-      retries: 10
-      start_period: 15s
+      retries: 5
     restart: unless-stopped
 
   itinerary-service:
     build: ./services/itinerary-service
-    ports:
-      - "8002:8000"
+    expose:
+      - "8000"
     environment:
       DATABASE_URL: postgresql://cameroon_itinerary:${ITINERARY_DB_PASSWORD:-cameroon_itinerary_prod}@itinerary-db:5432/cameroon_itineraries
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-cameroon}:${RABBITMQ_PASSWORD:-cameroon_events_prod}@rabbitmq:5672/
@@ -69,14 +87,13 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
       timeout: 3s
-      retries: 10
-      start_period: 15s
+      retries: 5
     restart: unless-stopped
 
   discovery-service:
     build: ./services/discovery-service
-    ports:
-      - "8003:8000"
+    expose:
+      - "8000"
     environment:
       DATABASE_URL: postgresql://cameroon_discovery:${DISCOVERY_DB_PASSWORD:-cameroon_discovery_prod}@discovery-db:5432/cameroon_discovery
     depends_on:
@@ -86,8 +103,30 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
       timeout: 3s
-      retries: 10
-      start_period: 15s
+      retries: 5
+    restart: unless-stopped
+
+  community-service:
+    build: ./services/community-service
+    mem_limit: 768m
+    cpus: 1.0
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    expose:
+      - "8000"
+    environment:
+      DATABASE_URL: postgresql://cameroon_community:${COMMUNITY_DB_PASSWORD:-cameroon_community_dev}@community-db:5432/cameroon_community
+      OSRM_BASE_URL: ${OSRM_BASE_URL:-https://router.project-osrm.org}
+      OVERPASS_URL: ${OVERPASS_URL:-https://overpass-api.de/api/interpreter}
+      MEDIA_STORAGE_LIMIT_MB: ${MEDIA_STORAGE_LIMIT_MB:-1024}
+    depends_on:
+      community-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
 
   user-db:
@@ -103,7 +142,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-    restart: unless-stopped
 
   itinerary-db:
     image: postgres:16-alpine
@@ -118,7 +156,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-    restart: unless-stopped
 
   discovery-db:
     image: postgres:16-alpine
@@ -133,7 +170,20 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-    restart: unless-stopped
+
+  community-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: cameroon_community
+      POSTGRES_USER: cameroon_community
+      POSTGRES_PASSWORD: ${COMMUNITY_DB_PASSWORD:-cameroon_community_dev}
+    volumes:
+      - community-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cameroon_community -d cameroon_community"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
@@ -141,7 +191,7 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-cameroon}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-cameroon_events_prod}
     ports:
-      - "15673:15672"
+      - "127.0.0.1:15673:15672"
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
@@ -149,10 +199,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-    restart: unless-stopped
 
 volumes:
+  https-data:
+  https-config:
   user-data:
   itinerary-data:
   discovery-data:
+  community-data:
   rabbitmq-data:

@@ -15,7 +15,7 @@ export default function GuidePage() {
           <div className="guide-hero-stats">
             <div><strong>{tourismPlaces.length}</strong><span><T fr="lieux repérés" en="mapped places" /></span></div>
             <div><strong>{tourismCities.length}</strong><span><T fr="villes et étapes" en="cities and stops" /></span></div>
-            <div><strong>3</strong><span><T fr="façons de profiter" en="ways to enjoy" /></span></div>
+            <div><strong>10</strong><span><T fr="régions couvertes" en="regions covered" /></span></div>
           </div>
         </div>
       </section>
@@ -23,9 +23,9 @@ export default function GuidePage() {
       <section className="guide-intro container section-small">
         <div>
           <p className="eyebrow"><T fr="Le carnet pratique" en="The practical guide" /></p>
-          <h2><T fr="Un séjour plus simple, du matin au soir." en="A smoother stay, from morning to night." /></h2>
+          <h2><T fr="Dormir, manger, bouger et découvrir." en="Stay, eat, move and explore." /></h2>
         </div>
-        <p><T fr="Filtrez les hôtels, restaurants et sorties. Sélectionnez une adresse pour centrer la carte, zoomez, puis ouvrez l’itinéraire. Les horaires, tarifs et conditions peuvent changer : confirmez toujours directement avant de réserver ou de vous déplacer." en="Filter hotels, restaurants and activities. Select a place to centre the map, zoom in, then open directions. Hours, rates and conditions can change, so always confirm directly before booking or travelling." /></p>
+        <p><T fr="Filtrez hôtels, motels, appartements, restaurants, fast-foods, véhicules et activités. Sélectionnez une adresse, puis ouvrez directement son itinéraire dans Google Maps. Les horaires, tarifs et conditions peuvent changer : confirmez toujours avant de réserver ou de vous déplacer." en="Filter hotels, motels, apartments, restaurants, fast food, vehicles and activities. Select a place, then open its directions directly in Google Maps. Hours, rates and conditions may change, so always confirm before booking or travelling." /></p>
       </section>
 
       <section className="tourism-map-section container">
@@ -65,4 +65,3 @@ export default function GuidePage() {
     </PageShell>
   );
 }
-

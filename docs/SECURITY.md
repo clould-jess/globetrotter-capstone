@@ -13,6 +13,10 @@ Ce dossier décrit le niveau attendu avant une mise en production publique. Le D
 - Conteneurs applicatifs lancés avec un utilisateur non privilégié.
 - Mots de passe de développement configurables et fichier `.env` ignoré.
 - Événements sans email ni contenu personnel complet.
+- Mots de passe hachés avec scrypt et sel aléatoire.
+- Sessions aléatoires, révocables, stockées sous forme de condensat et envoyées dans un cookie HttpOnly/SameSite.
+- Community Service accessible uniquement par la passerelle Docker et identité reconstruite par `auth_request`.
+- Contenu de discussion rendu par React, sans injection HTML, limité à 1 000 caractères.
 
 ## Frontière de confiance
 
@@ -21,13 +25,14 @@ Les en-têtes `X-User-ID` et `X-User-Role` ne sont fiables que s’ils sont supp
 ## À ajouter avant production
 
 1. TLS obligatoire et redirection HTTP vers HTTPS.
-2. Fournisseur OIDC, validation JWT, rotation des clés et sessions courtes.
+2. Pour un futur SSO, ajouter OIDC et la rotation des clés sans supprimer la révocation des sessions locales.
 3. Secrets fournis par un gestionnaire dédié, jamais par les valeurs de démonstration.
 4. CORS limité aux origines officielles et protection CSRF si des cookies sont utilisés.
 5. Migrations signées, sauvegardes chiffrées et exercice de restauration.
 6. Journaux structurés sans données sensibles, métriques et alertes.
 7. Analyse automatique des dépendances et images de conteneur.
 8. Tests d’autorisation couvrant les accès horizontaux et administrateur.
+9. Politique de modération, signalement utilisateur et durée de conservation des messages.
 
 ## Données et vie privée
 
@@ -36,4 +41,3 @@ Collecter uniquement ce qui est utile au compte et aux itinéraires. Définir un
 ## Signalement
 
 Dans le cadre scolaire, les défauts sont consignés dans le suivi du projet avec une description reproductible, leur impact et la correction proposée. Aucun secret réel ne doit être ajouté à un ticket.
-

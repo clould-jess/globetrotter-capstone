@@ -1,0 +1,17 @@
+{$SITE_HOST} {
+    encode zstd gzip
+    request_body {
+        max_size 13MB
+    }
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "camera=(self), microphone=(self), geolocation=(self)"
+    }
+    reverse_proxy gateway:8080 {
+        transport http {
+            response_header_timeout 65s
+        }
+    }
+}

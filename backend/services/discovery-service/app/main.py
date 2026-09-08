@@ -79,6 +79,67 @@ SEED_DESTINATIONS = [
     ),
 ]
 
+SEED_DESTINATIONS.extend(
+    [
+        (
+            "waza", "Parc national de Waza", "Extrême-Nord", "Far North",
+            "Un grand paysage de savane connu pour sa faune et ses oiseaux.",
+            "A vast savanna landscape known for wildlife and birds.",
+            ["nature", "adventure"],
+            "https://commons.wikimedia.org/wiki/Special:Redirect/file/Elephants%20around%20tree%20in%20Waza%2C%20Cameroon.jpg?width=1280",
+            True,
+        ),
+        (
+            "benoue", "Parc national de la Bénoué", "Nord", "North",
+            "Savanes, cours d’eau et observation de la faune entre Ngaoundéré et Garoua.",
+            "Savanna, waterways and wildlife viewing between Ngaoundéré and Garoua.",
+            ["nature", "adventure"],
+            "https://commons.wikimedia.org/wiki/Special:Redirect/file/Parc%20National%20Benoue.jpg?width=1280",
+            True,
+        ),
+        (
+            "tello", "Chutes de Tello", "Adamaoua", "Adamawa",
+            "Une cascade en rideau au cœur des hauteurs de l’Adamaoua.",
+            "A curtain waterfall in the heart of the Adamawa highlands.",
+            ["nature", "adventure"],
+            "https://commons.wikimedia.org/wiki/Special:Redirect/file/Chutes%20Tello.jpg?width=1280",
+            True,
+        ),
+        (
+            "lake-awing", "Lac Awing", "Nord-Ouest", "North-West",
+            "Un lac de cratère entouré par les collines verdoyantes des Grassfields.",
+            "A crater lake surrounded by the green hills of the Grassfields.",
+            ["nature", "culture", "adventure"],
+            "https://commons.wikimedia.org/wiki/Special:Redirect/file/Lake%20Awing%202.jpg?width=1280",
+            True,
+        ),
+        (
+            "limbe", "Limbé & jardin botanique", "Sud-Ouest", "South-West",
+            "Jardin tropical, plages volcaniques et vues sur le mont Cameroun.",
+            "Tropical gardens, volcanic beaches and views of Mount Cameroon.",
+            ["nature", "beach", "city"],
+            "https://commons.wikimedia.org/wiki/Special:Redirect/file/Botanic%20garden%20limbe54.jpg?width=1280",
+            True,
+        ),
+        (
+            "dja", "Réserve de faune du Dja", "Est", "East",
+            "Une vaste forêt du bassin du Congo presque encerclée par le fleuve Dja.",
+            "A vast Congo Basin rainforest almost encircled by the Dja River.",
+            ["nature", "adventure"],
+            "https://commons.wikimedia.org/wiki/Special:Redirect/file/Dja%20River%20and%20pirogue.JPG?width=1280",
+            True,
+        ),
+        (
+            "lobeke", "Parc national de Lobéké", "Est", "East",
+            "Clairières forestières et faune du bassin du Congo.",
+            "Forest clearings and Congo Basin wildlife.",
+            ["nature", "adventure"],
+            "https://commons.wikimedia.org/wiki/Special:Redirect/file/Lob%C3%A9k%C3%A9%20buffalo.jpg?width=1280",
+            True,
+        ),
+    ]
+)
+
 
 def connection():
     with psycopg.connect(DATABASE_URL, row_factory=dict_row) as database:
@@ -107,6 +168,19 @@ class DestinationRead(DestinationCreate):
     model_config = ConfigDict(from_attributes=True)
 
 
+class DestinationUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=2, max_length=120)
+    region_fr: str | None = Field(default=None, min_length=2, max_length=80)
+    region_en: str | None = Field(default=None, min_length=2, max_length=80)
+    summary_fr: str | None = Field(default=None, min_length=10, max_length=500)
+    summary_en: str | None = Field(default=None, min_length=10, max_length=500)
+    categories: list[Literal["nature", "culture", "beach", "adventure", "city"]] | None = Field(
+        default=None, min_length=1, max_length=5
+    )
+    image_url: str | None = Field(default=None, min_length=10, max_length=1000)
+    published: bool | None = None
+
+
 def initialise_database() -> None:
     with psycopg.connect(DATABASE_URL) as database:
         database.execute(
@@ -130,7 +204,7 @@ def initialise_database() -> None:
             """
             INSERT INTO destinations
               (slug, name, region_fr, region_en, summary_fr, summary_en, categories, image_url, published)
-            VALUES (%s, %s, %s, %s, %s, %s, %s::text[], %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (slug) DO NOTHING
             """,
             SEED_DESTINATIONS,
@@ -139,10 +213,7 @@ def initialise_database() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    try:
-        initialise_database()
-    except Exception as exc:
-        print(f"[discovery-service] Warning during database init: {exc}")
+    initialise_database()
     yield
 
 
@@ -226,6 +297,25 @@ def require_admin(role: str) -> None:
         raise HTTPException(status_code=403, detail="Administrator role required")
 
 
+@app.get("/admin/destinations", response_model=list[DestinationRead], tags=["publishing"])
+def list_admin_destinations(
+    database: Database,
+    role: AdminRole,
+    limit: int = Query(default=100, ge=1, le=200),
+):
+    require_admin(role)
+    return database.execute(
+        """
+        SELECT slug, name, region_fr, region_en, summary_fr, summary_en,
+               categories, image_url, published
+        FROM destinations
+        ORDER BY name
+        LIMIT %s
+        """,
+        (limit,),
+    ).fetchall()
+
+
 @app.post(
     "/admin/destinations",
     response_model=DestinationRead,
@@ -257,6 +347,39 @@ def create_destination(payload: DestinationCreate, role: AdminRole, database: Da
     ).fetchone()
     if not destination:
         raise HTTPException(status_code=409, detail="Destination slug already exists")
+    return destination
+
+
+@app.patch("/admin/destinations/{slug}", response_model=DestinationRead, tags=["publishing"])
+def update_destination(
+    slug: str,
+    payload: DestinationUpdate,
+    role: AdminRole,
+    database: Database,
+):
+    require_admin(role)
+    updates = payload.model_dump(exclude_unset=True, exclude_none=True)
+    if not updates:
+        raise HTTPException(status_code=400, detail="No destination fields supplied")
+    allowed_columns = {
+        "name", "region_fr", "region_en", "summary_fr", "summary_en",
+        "categories", "image_url", "published",
+    }
+    assignments = [f"{column} = %s" for column in updates if column in allowed_columns]
+    values = [updates[column].strip() if isinstance(updates[column], str) else updates[column] for column in updates]
+    values.append(slug)
+    destination = database.execute(
+        f"""
+        UPDATE destinations
+        SET {', '.join(assignments)}, updated_at = NOW()
+        WHERE slug = %s
+        RETURNING slug, name, region_fr, region_en, summary_fr, summary_en,
+                  categories, image_url, published
+        """,
+        values,
+    ).fetchone()
+    if not destination:
+        raise HTTPException(status_code=404, detail="Destination not found")
     return destination
 
 

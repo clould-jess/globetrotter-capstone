@@ -47,6 +47,7 @@ export default defineConfig(async () => {
     server: {
       host: "0.0.0.0",
       allowedHosts: ["terminal.local"],
+      proxy: { "/api/v1": { target: process.env.INTERNAL_API_URL ?? "http://127.0.0.1:8080" } },
       ...(isCodexSeatbeltSandbox
         ? { watch: { useFsEvents: false, usePolling: true } }
         : {}),
@@ -54,11 +55,11 @@ export default defineConfig(async () => {
     plugins: [
       vinext(),
       sites(),
-      cloudflare({
+      ...(process.env.DEPLOY_TARGET === "vps" ? [] : [cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
         inspectorPort: false,
         config: localBindingConfig,
-      }),
+      })]),
     ],
   };
 });

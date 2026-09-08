@@ -26,7 +26,6 @@ export function SiteFooter() {
         </div>
         <div className="footer-links">
           <p><T fr="Projet" en="Project" /></p>
-          <Link href="/architecture"><T fr="Phases & architecture" en="Phases & architecture" /></Link>
           <Link href="/credits"><T fr="Crédits photos" en="Photo credits" /></Link>
           <a href="mailto:hello@cameroon-project.test">hello@cameroon-project.test</a>
         </div>
