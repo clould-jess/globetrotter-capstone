@@ -12,6 +12,7 @@ export default function GuidePage() {
           <p className="eyebrow light"><T fr="Dormir · manger · découvrir" en="Stay · eat · explore" /></p>
           <h1><T fr="Tout pour profiter du voyage." en="Everything for an easy, joyful trip." /></h1>
           <p><T fr="Des adresses concrètes, des expériences choisies et une vraie carte pour organiser chaque journée." en="Real places, curated experiences and an interactive map to organise every day." /></p>
+          <Link className="button button-sun" href="/map"><T fr="Ouvrir la carte et préparer un trajet" en="Open the map and plan a journey" /> →</Link>
           <div className="guide-hero-stats">
             <div><strong>{tourismPlaces.length}</strong><span><T fr="lieux repérés" en="mapped places" /></span></div>
             <div><strong>{tourismCities.length}</strong><span><T fr="villes et étapes" en="cities and stops" /></span></div>

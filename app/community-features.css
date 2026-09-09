@@ -25,19 +25,6 @@
 .chat-message > div { min-width: 0; }.chat-message p { overflow-wrap: anywhere; white-space: pre-wrap; }
 .place-reviews { padding: 28px 20px; border-top: 1px solid #d8ded3; }.place-reviews h3 { font-size: 28px; }
 .review-card { padding: 20px 0; border-top: 1px solid #d8ded3; }.review-card > span { color: #a76e0f; margin-left: 14px; }.review-card p { margin-block: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }.review-card time { font-size: 12px; color: #58675b; margin-right: 16px; }
-.street-map { position: relative; overflow: hidden; height: 440px; width: 100%; z-index: 0; background: #e7ecdf; }
-.road-map { border: 1px solid #d6dfd1; border-radius: 12px; overflow: hidden; background: #fffefa; color: #193f30; }
-.route-controls { display: grid; gap: 16px; padding: 24px; }.route-controls p, .route-controls li { line-height: 1.6; }
-.route-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }.route-heading h3 { font-size: 25px; }
-.map-privacy { font-size: 12px; color: #526055; }
-.selected-map-point, .nearby-search { display: grid; gap: 12px; padding: 16px; background: #f1f3e9; border-radius: 8px; }
-.route-controls .button { justify-self: start; font-size: 12px; padding: 12px 16px; }
-.nearby-map-results { max-height: 230px; overflow: auto; list-style: none; padding: 0; }.nearby-map-results li { display: flex; justify-content: space-between; gap: 12px; padding: 10px; border-bottom: 1px solid #d8ded3; }.nearby-map-results button { text-align: left; }.nearby-map-results a { font-size: 11px; white-space: nowrap; }
-.route-stops { padding-left: 22px; margin: 0; }.route-stops li { padding: 10px 0; border-bottom: 1px solid #d8ded3; }.route-stops li > div { display: inline-flex; gap: 8px; margin-left: 10px; }.route-stops button { width: 34px; height: 34px; border: 1px solid #cbd5c8; border-radius: 6px; }
-.route-estimate { padding: 20px; background: #edf3e7; border-left: 3px solid #17633d; }.route-estimate strong { font-size: 26px; }.route-estimate ol { padding-left: 20px; font-size: 12px; }.route-estimate p { font-size: 12px; margin-block: 8px; }
-.saved-journey { display: flex; gap: 12px; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #d8ded3; }.saved-journey button { text-align: left; }
-.road-map button:disabled { opacity: .45; cursor: not-allowed; }.road-map a { text-decoration: underline; text-underline-offset: 3px; }
 .tourism-map-panel:has(.road-map) { position: static; max-height: none; overflow: visible; align-self: start; }
-@media(min-width:1000px) { .itinerary-hero ~ section > .road-map { display: grid; grid-template-columns: 1.2fr 1fr; align-items: start; }.itinerary-hero ~ section > .road-map .street-map { height: 650px; position: sticky; top: 0; } }
-@media(max-width:600px) { .street-map { height: 340px; }.route-controls { padding: 16px; }.media-composer { padding: 14px; }.chat-audio { max-width: 240px; }.route-heading h3 { font-size: 22px; } }
-@media(prefers-reduced-motion:reduce) { .road-map *, .destination-chat * { scroll-behavior: auto !important; } }
+@media(max-width:600px) { .media-composer { padding: 14px; }.chat-audio { max-width: 240px; } }
+@media(prefers-reduced-motion:reduce) { .destination-chat * { scroll-behavior: auto !important; } }

@@ -23,7 +23,7 @@ export function SiteHeader() {
           <Link href="/explore"><T fr="Explorer" en="Explore" /></Link>
           <Link href="/guide"><T fr="Séjour & sorties" en="Stay & enjoy" /></Link>
           <Link href="/recommendations"><T fr="Inspirations" en="Inspiration" /></Link>
-          <Link href="/itinerary"><T fr="Mon itinéraire" en="My itinerary" /></Link>
+          <Link href="/map"><T fr="Carte & trajets" en="Map & routes" /></Link>
           <Link href="/community"><T fr="Discussions" en="Community" /></Link>
         </nav>
         <GlobalSearch />

@@ -45,6 +45,7 @@ class ReviewCreate(TextModel):
 
 
 class Stop(TextModel):
+    approximate: bool = False
     name: str = Field(min_length=1, max_length=120)
     lat: float = Field(ge=-90, le=90, allow_inf_nan=False)
     lng: float = Field(ge=-180, le=180, allow_inf_nan=False)
@@ -263,6 +264,17 @@ def save_journey(payload: JourneyCreate, user: User, database: Database):
 def delete_journey(journey_id: UUID, user: User, database: Database):
     if not database.execute("DELETE FROM journeys WHERE id = %s AND user_id = %s RETURNING id", (journey_id, user.id)).fetchone():
         raise HTTPException(404, "Itinerary not found")
+
+
+@app.put("/journeys/{journey_id}")
+def update_journey(journey_id: UUID, payload: JourneyCreate, user: User, database: Database):
+    from psycopg.types.json import Jsonb
+    row = database.execute("""UPDATE journeys SET name = %s, stops = %s
+        WHERE id = %s AND user_id = %s RETURNING *""",
+        (payload.name, Jsonb([stop.model_dump() for stop in payload.stops]), journey_id, user.id)).fetchone()
+    if not row:
+        raise HTTPException(404, "Itinerary not found")
+    return row
 
 
 @app.get("/admin/stats")
