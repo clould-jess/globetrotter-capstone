@@ -54,5 +54,40 @@ L'attribution et la politique de référent des fonds respectent les
 - Vérification TypeScript, ESLint et compilation VPS.
 
 Les essais automatisés ne remplacent pas les essais sur des téléphones physiques.
-La confirmation en production sera ajoutée après publication et nettoyage des
-données temporaires de vérification.
+
+## Vérification en production — 10 septembre 2026
+
+Version applicative `3804f8b2edaec2978d675288299ec7cb94cda260`, publiée sur
+la branche `main` et https://cameroon-169-58-83-56.sslip.io/map.
+La compilation Linux, la santé des conteneurs, Nginx et HTTPS ont été vérifiés.
+
+20 contrôles supplémentaires ont réussi avec deux comptes temporaires :
+inscription/connexion, trajet OSRM réel, enregistrement, chargement dans Edge,
+modification persistée sans doublon et suppression. Le second compte ne voit
+pas le parcours et ne peut ni le modifier ni le supprimer. Le navigateur n'a
+signalé aucune erreur JavaScript pendant ce parcours ; les fonds cartographiques
+se sont chargés et la capture mobile a été inspectée.
+
+Le trajet entre les deux coordonnées publiques de test à Yaoundé a renvoyé
+912 m et environ 2 minutes, hors trafic. Ce résultat de vérification ne constitue
+pas une recommandation de déplacement et peut évoluer avec les données routières.
+
+Les recherches réelles autour de Yaoundé ont retourné 88 restaurants et
+17 sites touristiques. La recherche des ministères a répondu HTTP 503 : le
+service externe était indisponible pour cette requête. Elle n'est pas comptée
+comme une recherche réussie. Les six catégories ont été contrôlées avec des
+données simulées ; aucun résultat réel n'est inventé pour les catégories non
+interrogées dans cette dernière vérification.
+
+## Sauvegardes et nettoyage
+
+- Sauvegarde complète avant publication :
+  `/opt/cameroon-backups/release-8eLadq06`.
+- Sauvegarde complète avant suppression des comptes temporaires :
+  `/opt/cameroon-backups/release-MRSJMNc0`.
+- Le parcours de test a été supprimé via son compte propriétaire ; les deux
+  comptes temporaires ont ensuite été retirés après audit précis des identifiants.
+- Vérification finale : aucun compte ni parcours de ce test ne subsiste ; les
+  trois comptes préexistants sont conservés et la passerelle répond normalement.
+- Seuls `web`, `community-service` et `gateway` du projet Cameroon ont été
+  redémarrés. Les autres projets et les volumes du VPS sont conservés.

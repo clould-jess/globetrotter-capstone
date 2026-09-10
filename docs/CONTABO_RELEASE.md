@@ -1,6 +1,20 @@
 # Mise en ligne Contabo — 8 septembre 2026
 
-Site : **https://cameroon-169-58-83-56.sslip.io**. Dépôt VPS : `/opt/cameroon-project`, branche `main`, projet Docker `cameroon-project`. Version applicative actuelle vérifiée : `0914ed2` (messagerie v3) ; les mises à jour documentaires suivantes ne changent pas son fonctionnement.
+Site : **https://cameroon-169-58-83-56.sslip.io**. Dépôt VPS : `/opt/cameroon-project`, branche `main`, projet Docker `cameroon-project`. Version applicative actuelle vérifiée : `3804f8b` (carte v4 et messagerie v3) ; les mises à jour documentaires suivantes ne changent pas son fonctionnement.
+
+## Mise à jour carte v4 — 10 septembre 2026
+
+La nouvelle carte est accessible depuis « Carte & trajets » et `/map` :
+panneau mobile repliable/agrandissable, localisation à la demande, catégories
+de proximité, étapes réordonnables et modification des parcours enregistrés.
+Le [rapport carte et itinéraires](MAPS_V4.md) détaille les tests automatisés,
+les 20 contrôles réussis en production et l'indisponibilité observée de la
+recherche des ministères. Les deux comptes temporaires ont été supprimés ;
+les trois comptes préexistants ont été conservés.
+
+Sauvegarde avant publication : `/opt/cameroon-backups/release-8eLadq06`.
+La compilation et le redémarrage ont été limités à `web`, `community-service`
+et `gateway`. Les autres projets du VPS n'ont pas été modifiés.
 
 ## Mise à jour messagerie v3
 
